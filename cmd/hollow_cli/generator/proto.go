@@ -3,15 +3,24 @@ package generator
 
 import (
 	"fmt"
-	"hollow/internal/idl" // 自定义IDL解析器
+	"github.com/vaynedu/hollow/internal/idl" // 自定义IDL解析器
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
 // GenerateProto 生成HTTP处理代码
 func GenerateProto(protoPath string) error {
+	// 替换路径中的 ~ 并转换路径
+	convertedPath, err := replaceTildeAndConvertPath(protoPath)
+	if err != nil {
+		return err
+	}
+	protoPath = convertedPath
+
 	// 解析Protobuf文件（使用idl包解析服务和方法）
 	service, err := idl.ParseProto(protoPath)
 	if err != nil {
@@ -36,7 +45,7 @@ func Register{{.ServiceName}}Routes(router *gin.RouterGroup, handler {{.ServiceN
 			c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
-		resp, err := handler.{{.MethodName}}(c, &req)
+		resp, err := handler.{{.Name}}(c, &req)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -49,7 +58,7 @@ func Register{{.ServiceName}}Routes(router *gin.RouterGroup, handler {{.ServiceN
 // 业务需实现的接口
 type {{.ServiceName}}Handler interface {
 	{{range .Methods}}
-	{{.MethodName}}(ctx *gin.Context, req *{{.RequestType}}) (*{{.ResponseType}}, error)
+	{{.Name}}(ctx *gin.Context, req *{{.RequestType}}) (*{{.ResponseType}}, error)
 	{{end}}
 }
 `)
@@ -68,24 +77,69 @@ type {{.ServiceName}}Handler interface {
 
 	data := map[string]interface{}{
 		"Package":         filepath.Base(outputDir),
-		"FrameworkImport": "github.com/vaynedu/hollow", // 替换为实际导入路径
+		"FrameworkImport": "github.com/vaynedu/hollow",
 		"ServiceName":     service.Name,
 		"Methods":         service.Methods,
+	}
+
+	// 为每个方法设置HTTP方法和路径
+	for i := range data["Methods"].([]idl.Method) {
+		method := data["Methods"].([]idl.Method)[i]
+		method.HTTPMethod = inferHTTPMethod(method.Name)
+		method.Path = "/" + strings.ToLower(method.Name)
+		data["Methods"].([]idl.Method)[i] = method
 	}
 	return tmpl.Execute(file, data)
 }
 
+// 替换路径中的 ~ 为用户主目录，并转换 Unix 风格路径为 Windows 风格
+func replaceTildeAndConvertPath(pathStr string) (string, error) {
+	if strings.HasPrefix(pathStr, "~") {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		homeDir := usr.HomeDir
+		pathStr = strings.Replace(pathStr, "~", homeDir, 1)
+	}
+	// 转换 Unix 风格路径为 Windows 风格
+	if strings.HasPrefix(pathStr, "/c/") {
+		pathStr = "c:" + strings.TrimPrefix(pathStr, "/c")
+	}
+	pathStr = filepath.FromSlash(pathStr)
+	return pathStr, nil
+}
+
 // GenerateGoFromProto 调用 protoc 工具将 proto 文件生成对应的 go 文件
-func GenerateGoFromProto(protoPath string) error {
+func GenerateGoFromProto(protoPath string, protoImportPaths []string) error {
+	// 替换路径中的 ~ 并转换路径
+	protoPath, err := replaceTildeAndConvertPath(protoPath)
+	if err != nil {
+		return err
+	}
+
 	// 获取 proto 文件所在目录
 	protoDir := filepath.Dir(protoPath)
 
-	// 构建 protoc 命令
-	cmd := exec.Command("protoc",
+	// 构建 protoc 命令参数
+	cmdArgs := []string{
 		"--go_out=.",
-		"--proto_path="+protoDir,
-		filepath.Base(protoPath),
-	)
+		"--proto_path=" + protoDir,
+	}
+
+	// 替换导入路径中的 ~ 并转换路径
+	for i, p := range protoImportPaths {
+		p, err = replaceTildeAndConvertPath(p)
+		if err != nil {
+			return err
+		}
+		protoImportPaths[i] = p
+		cmdArgs = append(cmdArgs, "--proto_path="+p)
+	}
+
+	cmdArgs = append(cmdArgs, filepath.Base(protoPath))
+
+	cmd := exec.Command("protoc", cmdArgs...)
 
 	// 设置命令执行目录为 proto 文件所在目录
 	cmd.Dir = protoDir
@@ -98,4 +152,19 @@ func GenerateGoFromProto(protoPath string) error {
 	}
 
 	return nil
+}
+
+func inferHTTPMethod(methodName string) string {
+	switch {
+	case strings.HasPrefix(methodName, "Get"), strings.HasPrefix(methodName, "Query"):
+		return "GET"
+	case strings.HasPrefix(methodName, "Create"), strings.HasPrefix(methodName, "Add"):
+		return "POST"
+	case strings.HasPrefix(methodName, "Update"):
+		return "PUT"
+	case strings.HasPrefix(methodName, "Delete"):
+		return "DELETE"
+	default:
+		return "POST"
+	}
 }

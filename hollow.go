@@ -3,10 +3,10 @@ package hollow
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/vaynedu/hollow/internal/config"
+	"github.com/vaynedu/hollow/internal/logger"
+	"github.com/vaynedu/hollow/internal/middleware"
 	"go.uber.org/zap"
-	"hollow/internal/config"
-	"hollow/internal/logger"
-	"hollow/internal/middleware"
 )
 
 // App 框架核心结构体

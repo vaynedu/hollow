@@ -1,38 +1,41 @@
-// 假设该文件存在，若不存在需要创建
 package main
 
 import (
-	"flag"
-	"fmt"
-	"hollow/cmd/hollow_cli/generator"
+	"github.com/spf13/cobra"
+	"github.com/vaynedu/hollow/cmd/hollow_cli/generator"
+	"log"
 )
 
 func main() {
-	protoPath := flag.String("proto", "", "Path to the proto file")
-	generateHTTP := flag.Bool("http", false, "Generate HTTP handler code")
-	generateGo := flag.Bool("go", false, "Generate Go code from proto file")
-	flag.Parse()
-
-	if *protoPath == "" {
-		fmt.Println("Please provide a proto file path using -proto flag")
-		return
+	var rootCmd = &cobra.Command{
+		Use:   "hollow-cli",
+		Short: "Hollow框架代码生成工具",
 	}
 
-	if *generateHTTP {
-		err := generator.GenerateProto(*protoPath)
-		if err != nil {
-			fmt.Printf("Failed to generate HTTP handler code: %v\n", err)
-		} else {
-			fmt.Println("HTTP handler code generated successfully")
-		}
+	var protoImportPaths []string
+	var protoCmd = &cobra.Command{
+		Use:   "proto [proto文件路径]",
+		Short: "从Protobuf文件生成代码",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			protoPath := args[0]
+
+			// 1. 生成Go代码
+			if err := generator.GenerateGoFromProto(protoPath, protoImportPaths); err != nil {
+				log.Fatalf("生成Go代码失败: %v", err)
+			}
+
+			// 2. 生成HTTP处理代码
+			if err := generator.GenerateProto(protoPath); err != nil {
+				log.Fatalf("生成HTTP处理代码失败: %v", err)
+			}
+
+			log.Println("代码生成成功!")
+		},
 	}
 
-	if *generateGo {
-		err := generator.GenerateGoFromProto(*protoPath)
-		if err != nil {
-			fmt.Printf("Failed to generate Go code from proto file: %v\n", err)
-		} else {
-			fmt.Println("Go code generated successfully")
-		}
-	}
+	protoCmd.Flags().StringSliceVarP(&protoImportPaths, "proto_path", "I", []string{}, "Protobuf文件引用路径")
+
+	rootCmd.AddCommand(protoCmd)
+	rootCmd.Execute()
 }

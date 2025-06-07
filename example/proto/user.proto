@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+// 定义包名
+package hollow.marketing;
+
+option go_package = "proto/"; // 指定生成的 Go 代码的包名, 必须要带/
+option java_multiple_files = true;
+option java_outer_classname = "marketingProto";
+
+
+// 导入 google.api.http 扩展定义
+import "google/api/annotations.proto";
+
+
+// 定义请求消息
+message HelloRequest {
+  // 请求中的名称字段
+  string name = 1;
+}
+
+// 定义响应消息
+message HelloResponse {
+  // 响应中的问候语字段
+  string message = 1;
+}
+
+// 定义服务
+service HelloService {
+  // 定义 RPC 方法，接收 HelloRequest 并返回 HelloResponse
+  // 新增 option 指定 google.api.http，这里设置为 HTTP GET 请求，路径为 /hello/{name}
+  rpc SayHello (HelloRequest) returns (HelloResponse) {
+    option (google.api.http) = {
+      get: "/v1/hello"
+    };
+  }
+}

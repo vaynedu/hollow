@@ -1,8 +1,10 @@
 package idl
 
 import (
+	"bufio"
 	"errors"
-	"io/ioutil"
+	"os"
+	"regexp"
 	"strings"
 )
 
@@ -24,61 +26,59 @@ type Method struct {
 
 // ParseProto 解析Protobuf文件并提取服务和方法信息
 func ParseProto(protoPath string) (*Service, error) {
-	data, err := ioutil.ReadFile(protoPath)
+	file, err := os.Open(protoPath)
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
-	content := string(data)
-	service := &Service{}
+	scanner := bufio.NewScanner(file)
+	var content strings.Builder
+	for scanner.Scan() {
+		content.WriteString(scanner.Text() + "\n")
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 
-	// 简单解析示例，实际实现需要更完善的解析逻辑
-	serviceStart := strings.Index(content, "service")
-	if serviceStart == -1 {
+	protoContent := content.String()
+
+	// 移除单行注释
+	reSingleLineComment := regexp.MustCompile(`//.*`)
+	protoContent = reSingleLineComment.ReplaceAllString(protoContent, "")
+
+	// 移除多行注释
+	reMultiLineComment := regexp.MustCompile(`/\*.*?\*/`)
+	protoContent = reMultiLineComment.ReplaceAllString(protoContent, "")
+
+	// 匹配服务定义
+	serviceRegex := regexp.MustCompile(`service\s+(\w+)\s*{([^}]*)}`)
+	serviceMatches := serviceRegex.FindStringSubmatch(protoContent)
+	if len(serviceMatches) < 3 {
 		return nil, errors.New("no service definition found in proto file")
 	}
 
-	// 提取服务名
-	serviceEnd := strings.Index(content[serviceStart:], "{")
-	if serviceEnd == -1 {
-		return nil, errors.New("invalid service definition")
+	service := &Service{
+		Name: serviceMatches[1],
 	}
 
-	serviceLine := content[serviceStart : serviceStart+serviceEnd]
-	service.Name = strings.TrimSpace(strings.TrimPrefix(serviceLine, "service"))
-
-	// 提取方法
-	methodStart := serviceStart + serviceEnd + 1
-	methodEnd := strings.Index(content[methodStart:], "}")
-	if methodEnd == -1 {
-		return nil, errors.New("invalid method definitions")
-	}
-
-	methodsContent := content[methodStart : methodStart+methodEnd]
-	methodLines := strings.Split(methodsContent, ";")
-
-	for _, line := range methodLines {
-		line = strings.TrimSpace(line)
-		if line == "" {
+	// 匹配 RPC 方法，修改正则表达式以支持包含 option 字段的 rpc 定义
+	methodRegex := regexp.MustCompile(`rpc\s+(\w+)\s*\(([\w.]+)\)\s*returns\s*\(([\w.]+)\)\s*(?:\{|option)`)
+	methodMatches := methodRegex.FindAllStringSubmatch(serviceMatches[2], -1)
+	for _, match := range methodMatches {
+		if len(match) != 4 {
 			continue
 		}
 
-		if strings.HasPrefix(line, "rpc") {
-			method := Method{}
-			parts := strings.Fields(line)
-			if len(parts) < 4 {
-				continue
-			}
-
-			method.Name = parts[1]
-			method.RequestType = strings.Trim(parts[2], "()")
-			method.ResponseType = strings.Trim(parts[4], "()")
-			method.HTTPMethod = "POST" // 默认POST方法
-			method.Path = "/" + strings.ToLower(method.Name)
-			method.BindingType = "JSON" // 默认JSON绑定
-
-			service.Methods = append(service.Methods, method)
+		method := Method{
+			Name:         match[1],
+			RequestType:  match[2],
+			ResponseType: match[3],
+			HTTPMethod:   inferHTTPMethod(match[1]),
+			Path:         "/" + strings.ToLower(match[1]),
+			BindingType:  "JSON",
 		}
+		service.Methods = append(service.Methods, method)
 	}
 
 	if len(service.Methods) == 0 {
@@ -86,4 +86,19 @@ func ParseProto(protoPath string) (*Service, error) {
 	}
 
 	return service, nil
+}
+
+func inferHTTPMethod(methodName string) string {
+	switch {
+	case strings.HasPrefix(methodName, "Get"), strings.HasPrefix(methodName, "Query"):
+		return "GET"
+	case strings.HasPrefix(methodName, "Create"), strings.HasPrefix(methodName, "Add"):
+		return "POST"
+	case strings.HasPrefix(methodName, "Update"):
+		return "PUT"
+	case strings.HasPrefix(methodName, "Delete"):
+		return "DELETE"
+	default:
+		return "POST"
+	}
 }

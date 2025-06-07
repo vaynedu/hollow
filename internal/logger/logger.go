@@ -1,9 +1,9 @@
 package logger
 
 import (
+	"github.com/vaynedu/hollow/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"hollow/internal/config"
 )
 
 func InitLogger(cfg *config.Config) (*zap.Logger, error) {
