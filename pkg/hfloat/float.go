@@ -1,6 +1,7 @@
 package hfloat
 
 import (
+	"fmt"
 	"github.com/shopspring/decimal"
 	"math"
 	"strconv"
@@ -49,7 +50,7 @@ func RoundDownFloat(x float64) float64 {
 	return math.Floor(x*100) / 100
 }
 
-// ConvertFloatToString 将 float 类型的值转换为字符串
+// ConvertFloatToString converts a float value to a string
 func ConvertFloatToString(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
@@ -92,12 +93,16 @@ func MultiplyFloat(a, b float64) float64 {
 }
 
 // DivideFloat 两个 float 类型的值相除
-func DivideFloat(a, b float64) float64 {
+func DivideFloat(a, b float64) (float64, error) {
+	if abs(b) < floatCompareMin {
+		return 0.0, fmt.Errorf("cannot divide by zero")
+	}
+
 	aa := decimal.NewFromFloat(a)
 	bb := decimal.NewFromFloat(b)
 	res := aa.Div(bb)
 	f, _ := res.Float64()
-	return f
+	return f, nil
 }
 
 // AddStringFloat 两个 string 类型 float 相加
