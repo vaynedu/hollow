@@ -11,7 +11,7 @@ import (
 type Response struct {
 	Code      int         `json:"code"`
 	Msg       string      `json:"msg"`
-	RequestID string      `json:"requset_id"`
+	RequestID string      `json:"request_id"`
 	Data      interface{} `json:"data,omitempty"`
 }
 
