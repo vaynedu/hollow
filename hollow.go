@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow/internal/config"
 	"github.com/vaynedu/hollow/internal/logger"
-	"github.com/vaynedu/hollow/internal/middleware"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +18,13 @@ type App struct {
 	Middlewares []gin.HandlerFunc  // 中间件
 }
 
-func NewApp(cfgPath string) (*App, error) {
+type AppOption struct {
+	Config      *config.Config
+	Middlewares []gin.HandlerFunc // 中间件
+	Logger      *zap.Logger       // 日志实例
+}
+
+func NewApp(opts AppOption) (*App, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	app := &App{
 		Ctx:    ctx,
@@ -29,7 +34,7 @@ func NewApp(cfgPath string) (*App, error) {
 	}
 
 	// 初始化配置
-	cfg, err := config.NewConfig(cfgPath)
+	cfg, err := config.NewConfig("todo.yaml")
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +47,18 @@ func NewApp(cfgPath string) (*App, error) {
 	}
 	app.Logger = log
 
-	// 初始化中间件
-	app.Middlewares = []gin.HandlerFunc{
-		middleware.LoggingMiddleware(app.Logger),
-		middleware.RecoveryMiddleware(app.Logger),
-		middleware.ResponseMiddleware(),
+	// 依赖注入，让用户可以自定义中间件，通过外界传入，而不是在框架内部初始化，依赖耦合
+	if len(opts.Middlewares) >= 0 {
+		app.Middlewares = append(app.Middlewares, opts.Middlewares...)
+		app.Engine.Use(opts.Middlewares...)
 	}
-	app.Engine.Use(app.Middlewares...)
+	// 初始化中间件
+	//app.Middlewares = []gin.HandlerFunc{
+	//	middleware.LoggingMiddleware(app.Logger),
+	//	middleware.RecoveryMiddleware(app.Logger),
+	//	middleware.ResponseMiddleware(),
+	//}
+	//app.Engine.Use(app.Middlewares...)
 
 	return app, nil
 }
@@ -61,4 +71,9 @@ func (app *App) Start() error {
 func (app *App) End() {
 	app.Logger.Info("stopping hollow server")
 	app.Cancel()
+}
+
+func (app *App) AddMiddleware(middlewares ...gin.HandlerFunc) {
+	app.Middlewares = append(app.Middlewares, middlewares...)
+	app.Engine.Use(middlewares...)
 }
