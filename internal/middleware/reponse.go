@@ -21,11 +21,13 @@ func ResponseMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		// 从 context 中获取 request_id
-		requestId, exists := c.Get(RequestIDKey)
-		if !exists {
-			requestId = hidgenerator.NewUuid().GenerateRequestID()
+		// 从请求头中获取 request_id
+		requestID := c.GetHeader("X-Request-ID")
+		// 如果请求头中没有 request_id，则生成一个新的
+		if requestID == "" {
+			requestID = hidgenerator.NewUuid().GenerateRequestID()
 			// 将新生成的 request_id 添加到请求头中
-			c.Request.Header.Set("X-Request-ID", requestId.(string))
+			c.Request.Header.Set("X-Request-ID", requestID)
 		}
 
 		// 处理业务错误
@@ -33,7 +35,7 @@ func ResponseMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, Response{
 				Code:      http.StatusInternalServerError,
 				Msg:       err.Err.Error(),
-				RequestID: requestId.(string),
+				RequestID: requestID,
 			})
 			return
 		}
@@ -47,7 +49,7 @@ func ResponseMiddleware() gin.HandlerFunc {
 		c.JSON(http.StatusOK, Response{
 			Code:      http.StatusOK,
 			Msg:       "success",
-			RequestID: requestId.(string),
+			RequestID: requestID,
 			Data:      data,
 		})
 	}
