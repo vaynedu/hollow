@@ -1,13 +1,16 @@
 package hollow
 
 import (
-	"context"
-	"fmt"
+    "context"
+    "fmt"
+    "os"
+    "os/signal"
+    "syscall"
 
-	"github.com/gin-gonic/gin"
-	"github.com/vaynedu/hollow/internal/config"
-	"github.com/vaynedu/hollow/internal/middleware"
-	"go.uber.org/zap"
+    "github.com/gin-gonic/gin"
+    "github.com/vaynedu/hollow/internal/config"
+    "github.com/vaynedu/hollow/internal/middleware"
+    "go.uber.org/zap"
 )
 
 // App 框架核心结构体
@@ -82,10 +85,14 @@ func (app *App) Start() error {
 }
 
 func (app *App) End() {
-	app.Logger.Info("stopping hollow server")
-	app.Cancel()
+    quit := make(chan os.Signal, 1)
+    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+    <-quit
 
-	// todo 考虑优雅的关闭服务
+    app.Logger.Info("stopping hollow server")
+    app.Cancel()
+
+    // todo 考虑优雅的关闭服务
 }
 
 func (app *App) AddMiddleware(middlewares ...gin.HandlerFunc) {
