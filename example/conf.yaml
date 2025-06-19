@@ -1,0 +1,5 @@
+host: ":8181"
+
+logging:
+  level: "debug"
+  mode: "console"
