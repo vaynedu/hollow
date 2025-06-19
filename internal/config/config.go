@@ -5,26 +5,28 @@ import (
 )
 
 // LogConfig 定义日志配置结构体
- type LogConfig struct {
-	LogLevel     string `mapstructure:"level"`
-	OutputMode   string `mapstructure:"output_mode"`
-	LogFileName  string `mapstructure:"file"`
-	MaxSize      int    `mapstructure:"max_size"`
-	MaxAge       int    `mapstructure:"max_age"`
+type LogConfig struct {
+	LogLevel    string `mapstructure:"level"`
+	OutputMode  string `mapstructure:"output_mode"`
+	LogFileName string `mapstructure:"file"`
+	MaxSize     int    `mapstructure:"max_size"`
+	MaxAge      int    `mapstructure:"max_age"`
 }
 
- type Config struct {
+type Config struct {
 	*viper.Viper
 	LogConfig LogConfig `mapstructure:"log"`
+	Host      string    `mapstructure:"host"`
 }
 
-func NewConfig(cfgPath string) (*Config, error) {
+func NewConfig(path string, configFileName string) (*Config, error) {
 	v := viper.New()
-	v.SetConfigFile(cfgPath)
+	v.AddConfigPath(path)
+	v.SetConfigName(configFileName)
 	v.SetConfigType("yaml")
 
-	// 监听配置文件改变
-	v.WatchConfig()
+	// 监听配置文件改变  // todo 这里需要验证
+	// v.WatchConfig()
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func NewConfig(cfgPath string) (*Config, error) {
 	if err := v.Unmarshal(&config); err != nil {
 		return nil, err
 	}
+	config.Viper = v // 假设 Config 结构体有 Viper 字段，添加赋值操作
 
 	return &config, nil
 }

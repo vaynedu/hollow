@@ -10,14 +10,14 @@ import (
 const RequestIDKey = "request_id"
 
 // RequestIDMiddleware 中间件实现
-func RequestIDMiddleware(generator hidgenerator.IdGenerator) gin.HandlerFunc {
+func RequestIDMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从请求头中获取 request_id
 		requestID := c.GetHeader("X-Request-ID")
 
 		// 如果请求头中没有 request_id，则生成一个新的
 		if requestID == "" {
-			requestID = generator.GenerateRequestID()
+			requestID = hidgenerator.NewUuid().GenerateRequestID()
 			// 将新生成的 request_id 添加到请求头中
 			c.Request.Header.Set("X-Request-ID", requestID)
 		}
