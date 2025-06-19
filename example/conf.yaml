@@ -1,5 +1,10 @@
-host: ":8181"
-
-logging:
-  level: "debug"
-  mode: "console"
+host: 127.0.0.1:8090
+log:
+  level: debug
+db:
+  dsn: root:123456@tcp(127.0.0.1:3306)/marketing?charset=utf8mb4&parseTime=True&loc=Local
+  dialect: mysql
+redis:
+  addr: 127.0.0.1:6379
+  password: 123456
+  db: 0
