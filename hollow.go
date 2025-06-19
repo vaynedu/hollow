@@ -1,16 +1,16 @@
 package hollow
 
 import (
-    "context"
-    "fmt"
-    "os"
-    "os/signal"
-    "syscall"
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
-    "github.com/gin-gonic/gin"
-    "github.com/vaynedu/hollow/internal/config"
-    "github.com/vaynedu/hollow/internal/middleware"
-    "go.uber.org/zap"
+	"github.com/gin-gonic/gin"
+	"github.com/vaynedu/hollow/internal/config"
+	"github.com/vaynedu/hollow/internal/middleware"
+	"go.uber.org/zap"
 )
 
 // App 框架核心结构体
@@ -45,7 +45,7 @@ func NewApp(opts AppOption) (*App, error) {
 	//}
 	app.Config = opts.Config
 	fmt.Println("app.Config", app.Config == nil)
-	fmt.Printf("app.Config.LogConfig +%+v\n", app.Config.LogConfig)
+	fmt.Printf("app.Config.LogConfig +%+v\n", app.Config.Log)
 	fmt.Printf("app.Config.Host +%+v\n", app.Config.GetString("host"))
 
 	// 初始化日志
@@ -85,14 +85,14 @@ func (app *App) Start() error {
 }
 
 func (app *App) End() {
-    quit := make(chan os.Signal, 1)
-    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-    <-quit
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 
-    app.Logger.Info("stopping hollow server")
-    app.Cancel()
+	app.Logger.Info("stopping hollow server")
+	app.Cancel()
 
-    // todo 考虑优雅的关闭服务
+	// todo 考虑优雅的关闭服务
 }
 
 func (app *App) AddMiddleware(middlewares ...gin.HandlerFunc) {

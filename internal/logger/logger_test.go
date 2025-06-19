@@ -27,7 +27,7 @@ func TestInitLogger(t *testing.T) {
 
 	// 测试文件输出模式
 	fileCfg := &config.Config{
-		LogConfig: config.LogConfig{
+		Log: config.LogConfig{
 			LogLevel:    "debug",
 			OutputMode:  "file",
 			LogFileName: "test.log",
@@ -50,7 +50,7 @@ func TestInitLogger(t *testing.T) {
 
 	// 测试控制台输出模式
 	consoleCfg := &config.Config{
-		LogConfig: config.LogConfig{
+		Log: config.LogConfig{
 			LogLevel:   "warn",
 			OutputMode: "console",
 		},

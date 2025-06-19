@@ -11,24 +11,24 @@ import (
 
 func InitLogger(cfg *config.Config) (*zap.Logger, error) {
 	// 设置默认值
-	if cfg.LogConfig.LogLevel == "" {
-		cfg.LogConfig.LogLevel = "debug"
+	if cfg.Log.LogLevel == "" {
+		cfg.Log.LogLevel = "debug"
 	}
-	if cfg.LogConfig.OutputMode == "" {
-		cfg.LogConfig.OutputMode = "console"
+	if cfg.Log.OutputMode == "" {
+		cfg.Log.OutputMode = "console"
 	}
-	if cfg.LogConfig.LogFileName == "" {
-		cfg.LogConfig.LogFileName = "app.log"
+	if cfg.Log.LogFileName == "" {
+		cfg.Log.LogFileName = "app.log"
 	}
-	if cfg.LogConfig.MaxSize == 0 {
-		cfg.LogConfig.MaxSize = 100 // MB
+	if cfg.Log.MaxSize == 0 {
+		cfg.Log.MaxSize = 100 // MB
 	}
-	if cfg.LogConfig.MaxAge == 0 {
-		cfg.LogConfig.MaxAge = 30 // 天
+	if cfg.Log.MaxAge == 0 {
+		cfg.Log.MaxAge = 30 // 天
 	}
 
 	var level zapcore.Level
-	switch cfg.LogConfig.LogLevel {
+	switch cfg.Log.LogLevel {
 	case "debug":
 		level = zap.DebugLevel
 	case "info":
@@ -53,19 +53,19 @@ func InitLogger(cfg *config.Config) (*zap.Logger, error) {
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
-	if cfg.LogConfig.OutputMode == "console" {
+	if cfg.Log.OutputMode == "console" {
 		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
 		encoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
 	}
 
 	var core zapcore.Core
-	if cfg.LogConfig.OutputMode == "file" {
+	if cfg.Log.OutputMode == "file" {
 		writer := &lumberjack.Logger{
-			Filename:   cfg.LogConfig.LogFileName,
-			MaxSize:    cfg.LogConfig.MaxSize,
+			Filename:   cfg.Log.LogFileName,
+			MaxSize:    cfg.Log.MaxSize,
 			MaxBackups: 3,
-			MaxAge:     cfg.LogConfig.MaxAge,
+			MaxAge:     cfg.Log.MaxAge,
 			Compress:   false,
 		}
 		core = zapcore.NewCore(

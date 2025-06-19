@@ -15,8 +15,10 @@ type LogConfig struct {
 
 type Config struct {
 	*viper.Viper
-	LogConfig LogConfig `mapstructure:"log"`
-	Host      string    `mapstructure:"host"`
+	Host  string      `mapstructure:"host"`
+	Log   LogConfig   `mapstructure:"log"`
+	Db    DbConfig    `mapstructure:"db"`
+	Redis RedisConfig `mapstructure:"redis"`
 }
 
 func NewConfig(path string, configFileName string) (*Config, error) {
