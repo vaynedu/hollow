@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/vaynedu/hollow/example/handler"
-	"go.uber.org/zap"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow"
+	"github.com/vaynedu/hollow/example/handler"
 	"github.com/vaynedu/hollow/internal/config"
 	"github.com/vaynedu/hollow/internal/logger"
 	"github.com/vaynedu/hollow/internal/middleware"
@@ -44,14 +44,11 @@ func main() {
 	}
 
 	// 注册路由
-	app.Engine.GET("/hello", handler.HelloHandler)
+	// app.Engine.GET("/hello", handler.HelloHandler)
+	app.AddRoute(http.MethodGet, "/hello", handler.HelloHandler)
 
 	// 启动服务
-	go func() {
-		if err := app.Start(); err != nil {
-			app.Logger.Fatal("failed to start server", zap.Error(err))
-		}
-	}()
+	app.Start()
 
 	// 关闭服务
 	app.End()

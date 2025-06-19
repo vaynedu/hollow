@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
+
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow/internal/config"
@@ -75,13 +78,17 @@ func NewApp(opts AppOption) (*App, error) {
 }
 
 // Start 启动服务
-func (app *App) Start() error {
-	app.Logger.Info("starting hollow server")
-	addr := app.Config.GetString("host")
-	if addr == "" {
-		addr = ":8181"
-	}
-	return app.Engine.Run(addr)
+func (app *App) Start() {
+	go func() {
+		app.Logger.Info("starting hollow server")
+		addr := app.Config.GetString("host")
+		if addr == "" {
+			addr = ":8181"
+		}
+		if err := app.Engine.Run(addr); err != nil {
+			app.Logger.Fatal("failed to start server", zap.Error(err))
+		}
+	}()
 }
 
 func (app *App) End() {
@@ -97,5 +104,27 @@ func (app *App) End() {
 
 func (app *App) AddMiddleware(middlewares ...gin.HandlerFunc) {
 	app.Middlewares = append(app.Middlewares, middlewares...)
+	app.Engine.Use(middlewares...)
+}
+
+func (app *App) AddRoute(method, path string, handlerFunc gin.HandlerFunc) {
+	app.Engine.Handle(method, path, handlerFunc)
+}
+
+func (app *App) RemoveMiddleware(middlewares ...gin.HandlerFunc) {
+	// 用户可以指定不使用某个中间件
+	// WARNING 感觉这段代码有风险， 因为go的函数不能比较，有可能地址一样，但是行为不同，比如闭包
+	// 但是对于中间件，一般都是在初始化的时候就确定了，不会在运行时动态改变，所以认为是安全的
+	// 如果针对函数一定要比较，可以封装一个标识符
+	for _, middleware := range middlewares {
+		sf1 := reflect.ValueOf(middleware)
+		for i := 0; i < len(app.Middlewares); i++ {
+			sf2 := reflect.ValueOf(app.Middlewares[i])
+			if sf1.Pointer() == sf2.Pointer() {
+				app.Middlewares = slices.Delete(app.Middlewares, i, i+1)
+				i-- // 调整索引
+			}
+		}
+	}
 	app.Engine.Use(middlewares...)
 }
