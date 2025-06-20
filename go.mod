@@ -4,6 +4,7 @@ go 1.23.4
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/larksuite/oapi-sdk-go/v3 v3.4.19
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cast v1.9.2
 	github.com/spf13/cobra v1.9.1
