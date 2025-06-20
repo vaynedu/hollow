@@ -10,8 +10,6 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576
-	google.golang.org/protobuf v1.36.1
 )
 
 require (
@@ -20,6 +18,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	google.golang.org/protobuf v1.36.1 // indirect
 )
 
 require (
