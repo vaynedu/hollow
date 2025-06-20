@@ -7,6 +7,21 @@ import (
 	"github.com/vaynedu/hollow/pkg/hidgenerator"
 )
 
+type ResponseMiddleware struct {
+}
+
+func NewResponseMiddleware() *ResponseMiddleware {
+	return &ResponseMiddleware{}
+}
+
+func (m *ResponseMiddleware) HandlerFunc() gin.HandlerFunc {
+	return responseMiddleware
+}
+
+func (m *ResponseMiddleware) Identifier() string {
+	return "response"
+}
+
 // Response 标准响应格式
 type Response struct {
 	Code      int         `json:"code"`
@@ -16,9 +31,9 @@ type Response struct {
 }
 
 // ResponseMiddleware 中间件：自动封装响应
-func ResponseMiddleware() gin.HandlerFunc {
-	return responseMiddleware
-}
+// func ResponseMiddleware() gin.HandlerFunc {
+// 	return responseMiddleware
+// }
 
 func responseMiddleware(c *gin.Context) {
 	c.Next()
@@ -31,6 +46,7 @@ func responseMiddleware(c *gin.Context) {
 		requestID = hidgenerator.NewUuid().GenerateRequestID()
 		// 将新生成的 request_id 添加到请求头中
 		c.Request.Header.Set("X-Request-ID", requestID)
+		c.Writer.Header().Set("X-Request-ID", requestID)
 	}
 
 	// 处理业务错误

@@ -7,7 +7,5 @@ import (
 
 func HelloHandler(c *gin.Context) {
 	res := service.Hello("hello")
-	c.JSON(200, gin.H{
-		"message": res,
-	})
+	c.Set("data", gin.H{"message": res})
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow"
 	"github.com/vaynedu/hollow/example/handler"
 	"github.com/vaynedu/hollow/internal/middleware"
@@ -13,11 +12,11 @@ func main() {
 
 	// 创建App选项
 	opts := hollow.AppOption{
-		AddMiddlewares: []gin.HandlerFunc{
-			middleware.RequestIDMiddleware(), // 示例 request_id 中间件
+		AddMiddlewares: []middleware.Middleware{
+			middleware.NewRequestIDMiddleware(), // 示例 request_id 中间件
 		},
-		RemoveMiddlewares: []gin.HandlerFunc{
-			middleware.ResponseMiddleware(), // 示例 同意reponse打印
+		RemoveMiddlewares: []middleware.Middleware{
+			//middleware.NewResponseMiddleware(), // 示例 统一reponse打印
 		},
 	}
 
