@@ -1,14 +1,12 @@
 package hcond
 
 import (
-	"testing"
-
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"testing"
 )
 
 // MockCondition 实现 Conditioner 接口，用于测试
-type MockCondition struct {
+ type MockCondition struct {
 	SQL  string
 	Args []interface{}
 }
@@ -19,10 +17,7 @@ func (m MockCondition) ToSQL() (string, []interface{}) {
 
 func TestBuildWhereClause(t *testing.T) {
 	// 初始化一个模拟的 gorm.DB 实例
-	mockDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("初始化 gorm.DB 实例失败: %v", err)
-	}
+	mockDB := &gorm.DB{}
 
 	// 测试用例 1: 空 SQL
 	cond1 := MockCondition{SQL: "", Args: nil}

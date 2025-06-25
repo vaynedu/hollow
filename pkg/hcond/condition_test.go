@@ -1,7 +1,6 @@
 package hcond
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -96,7 +95,7 @@ func TestCondition_toAtomicSQL(t *testing.T) {
 	expectedErrInvalidOp := fmt.Errorf("unsupported operator: INVALID")
 
 	actualSQL, actualArgs, actualErr := condInvalidOp.toAtomicSQL()
-	if actualErr == nil || errors.Is(actualErr, expectedErrInvalidOp) {
+	if actualErr == nil || !reflect.DeepEqual(actualErr, expectedErrInvalidOp) {
 		t.Errorf("期望错误: %v, 实际错误: %v", expectedErrInvalidOp, actualErr)
 	}
 
@@ -108,7 +107,7 @@ func TestCondition_toAtomicSQL(t *testing.T) {
 	expectedErrInvalidIn := fmt.Errorf("RHS must be a slice for IN operator")
 
 	actualSQL, actualArgs, actualErr = condInvalidIn.toAtomicSQL()
-	if actualErr == nil || errors.Is(actualErr, expectedErrInvalidIn) {
+	if actualErr == nil || !reflect.DeepEqual(actualErr, expectedErrInvalidIn) {
 		t.Errorf("期望错误: %v, 实际错误: %v", expectedErrInvalidIn, actualErr)
 	}
 
