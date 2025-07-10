@@ -23,8 +23,7 @@ func TestCondition_ToSQL(t *testing.T) {
 		},
 		expectedSQL:  "column = ?",
 		expectedArgs: []interface{}{"value"},
-	}, {
-		name: "原子条件 IN 操作符",
+	}, {name: "原子条件 IN 操作符",
 		condition: Condition{
 			Operator: "IN",
 			LHS:      "column",
