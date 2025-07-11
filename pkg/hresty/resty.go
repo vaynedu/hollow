@@ -1,12 +1,14 @@
 package hresty
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"runtime"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/vaynedu/hollow/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -36,27 +38,76 @@ func NewTransport() *http.Transport {
 		IdleConnTimeout:       30 * time.Second,           // 空闲连接超时时间
 		TLSHandshakeTimeout:   3 * time.Second,            // TLS 握手超时时间
 		ExpectContinueTimeout: 1 * time.Second,            // 100-continue 握手超时时间
+		DisableKeepAlives:     false,                      // 是否开启长链接
 	}
 }
 
-func PrintTraceInfo(resp *resty.Response) {
+// RequestTrace 定义请求跟踪信息的结构化数据
+type RequestTrace struct {
+	DNSLookup      time.Duration // DNS查询时间
+	ConnTime       time.Duration // 连接建立时间(含TCP+TLS)
+	TCPConnTime    time.Duration // TCP连接时间
+	TLSHandshake   time.Duration // TLS握手时间
+	ServerTime     time.Duration // 服务器处理时间
+	ResponseTime   time.Duration // 响应总时间
+	TotalTime      time.Duration // 请求总耗时
+	ResponseSize   int           // 响应体大小
+	IsConnReused   bool          // 连接是否复用
+	IsConnWasIdle  bool          // 连接是否为空闲连接
+	ConnIdleTime   time.Duration // 连接空闲时间
+	RequestAttempt int           // 请求尝试次数
+	RemoteAddr     string        // 远程服务器地址
+}
+
+// GetTraceInfo 从响应中提取跟踪信息并返回结构化数据
+func GetTraceInfo(resp *resty.Response) (*RequestTrace, error) {
 	if resp == nil || resp.Request == nil {
-		zap.L().Info("Resp or Req is nil")
+		return nil, errors.New("resp or request is nil")
+	}
+
+	traceInfo := resp.Request.TraceInfo()
+	return &RequestTrace{
+		DNSLookup:      traceInfo.DNSLookup,
+		ConnTime:       traceInfo.ConnTime,
+		TCPConnTime:    traceInfo.TCPConnTime,
+		TLSHandshake:   traceInfo.TLSHandshake,
+		ServerTime:     traceInfo.ServerTime,
+		ResponseTime:   traceInfo.ResponseTime,
+		TotalTime:      traceInfo.TotalTime,
+		ResponseSize:   len(resp.Body()),
+		IsConnReused:   traceInfo.IsConnReused,
+		IsConnWasIdle:  traceInfo.IsConnWasIdle,
+		ConnIdleTime:   traceInfo.ConnIdleTime,
+		RequestAttempt: traceInfo.RequestAttempt,
+		RemoteAddr:     traceInfo.RemoteAddr.String(),
+	}, nil
+}
+
+// PrintTraceInfo 打印请求跟踪信息(保持向后兼容)
+func PrintTraceInfo(resp *resty.Response) {
+	trace, err := GetTraceInfo(resp)
+	if err != nil {
+		logger.GetLogger().Error("获取跟踪信息失败", zap.Error(err))
 		return
 	}
-	traceInfo := resp.Request.TraceInfo()
-	zap.L().Info("Reqeust trace info")
-	zap.L().Info("DNSLookup:", zap.Duration("DNSLookup", traceInfo.DNSLookup))
-	zap.L().Info("ConnTime:", zap.Duration("ConnTime", traceInfo.ConnTime))
-	zap.L().Info("TCPConnTime:", zap.Duration("TCPConnTime", traceInfo.TCPConnTime))
-	zap.L().Info("TLSHandshake:", zap.Duration("TLSHandshake", traceInfo.TLSHandshake))
-	zap.L().Info("ServerTime:", zap.Duration("ServerTime", traceInfo.ServerTime))
-	zap.L().Info("Responsetime:", zap.Duration("Response time", traceInfo.ResponseTime))
-	zap.L().Info("TotalTime:", zap.Duration("TotalTime", traceInfo.TotalTime))
-	zap.L().Info("Response size:", zap.Int("Response size", len(resp.Body())))
-	zap.L().Info("IsConnReused:", zap.Bool("IsConnReused", traceInfo.IsConnReused))
-	zap.L().Info("IsConnWasIdle:", zap.Bool("IsConnWasIdle", traceInfo.IsConnWasIdle))
-	zap.L().Info("ConnIdleTime:", zap.Duration("ConnIdleTime", traceInfo.ConnIdleTime))
-	zap.L().Info("RequestAttempt:", zap.Int("RequestAttempt", traceInfo.RequestAttempt))
-	zap.L().Info("RemoteAddr:", zap.String("RemoteAddr", traceInfo.RemoteAddr.String()))
+	PrintStructuredTrace(trace)
+}
+
+// PrintStructuredTrace 打印结构化的请求跟踪信息
+func PrintStructuredTrace(trace *RequestTrace) {
+	logger.GetLogger().Info("请求跟踪信息",
+		zap.Duration("dns查询时间", trace.DNSLookup),
+		zap.Duration("连接建立时间", trace.ConnTime),
+		zap.Duration("tcp连接时间", trace.TCPConnTime),
+		zap.Duration("tls握手时间", trace.TLSHandshake),
+		zap.Duration("服务器处理时间", trace.ServerTime),
+		zap.Duration("响应总时间", trace.ResponseTime),
+		zap.Duration("请求总耗时", trace.TotalTime),
+		zap.Int("响应体大小(字节)", trace.ResponseSize),
+		zap.Bool("连接是否复用", trace.IsConnReused),
+		zap.Bool("是否空闲连接", trace.IsConnWasIdle),
+		zap.Duration("连接空闲时间", trace.ConnIdleTime),
+		zap.Int("请求尝试次数", trace.RequestAttempt),
+		zap.String("远程服务器地址", trace.RemoteAddr),
+	)
 }

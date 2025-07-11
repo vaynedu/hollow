@@ -9,7 +9,24 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var logger *zap.Logger
+
+func GetLogger() *zap.Logger {
+	// 这里没想好，先这样
+	// 框架内部打印是不是有个专门的日志
+	if logger == nil {
+		InitLogger(nil)
+	}
+	return logger
+}
+
 func InitLogger(cfg *config.Config) (*zap.Logger, error) {
+	if cfg == nil {
+		cfg = &config.Config{
+			Log: config.LogConfig{},
+		}
+	}
+
 	// 设置默认值
 	if cfg.Log.LogLevel == "" {
 		cfg.Log.LogLevel = "debug"
@@ -82,5 +99,6 @@ func InitLogger(cfg *config.Config) (*zap.Logger, error) {
 		)
 	}
 
-	return zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)), nil
+	logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	return logger, nil
 }
