@@ -50,7 +50,7 @@ func TestCondition_ToSQL(t *testing.T) {
 				},
 			},
 		},
-		expectedSQL:  "(col1 = ? && col2 = ?)",
+		expectedSQL:  "(col1 = ? AND col2 = ?)",
 		expectedArgs: []interface{}{"val1", "val2"},
 	}, {
 		name: "逻辑条件 || 操作符",
