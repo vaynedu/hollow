@@ -5,8 +5,14 @@ import (
 	"strings"
 )
 
+// 包级错误变量定义
+var (
+	ErrRHSNotSlice = fmt.Errorf("RHS must be a slice for IN operator")
+	ErrUnsupportedOperator = fmt.Errorf("unsupported operator")
+)
+
 // Condition 表示一个条件节点：可以是原子条件，也可以是一个子条件组
-type Condition struct {
+ type Condition struct {
 	Operator   string      `json:"operator"`   // 支持 =, !=, >, <, IN, &&, || 等
 	LHS        string      `json:"lhs"`        // 左值字段名（仅在原子条件中使用）
 	RHS        interface{} `json:"rhs"`        // 右值（仅在原子条件中使用）
@@ -36,8 +42,8 @@ func (c *Condition) ToSQL() (string, []interface{}, error) {
 		args = append(args, subArgs...)
 	}
 
-	op := "&&"
-	if c.Operator == string("||") {
+	op := "AND"
+	if c.Operator == "||" {
 		op = "OR"
 	}
 
@@ -58,10 +64,10 @@ func (c *Condition) toAtomicSQL() (string, []interface{}, error) {
 	switch c.Operator {
 	case Equal, NotEqual, GreaterThan, LessThan, GreaterEqual, LessEqual:
 		return fmt.Sprintf("%s %s ?", c.LHS, c.Operator), []interface{}{c.RHS}, nil
-	case "IN":
+	case In:
 		values, ok := c.RHS.([]interface{})
 		if !ok {
-			return "", nil, fmt.Errorf("RHS must be a slice for IN operator")
+			return "", nil, ErrRHSNotSlice
 		}
 		placeholders := make([]string, len(values))
 		for i := range values {
@@ -69,6 +75,7 @@ func (c *Condition) toAtomicSQL() (string, []interface{}, error) {
 		}
 		return fmt.Sprintf("%s IN (%s)", c.LHS, strings.Join(placeholders, ", ")), values, nil
 	default:
-		return "", nil, fmt.Errorf("unsupported operator: %s", c.Operator)
+		return "", nil, fmt.Errorf("%w: %s", ErrUnsupportedOperator, c.Operator)
 	}
 }
+

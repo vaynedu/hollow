@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCondition_ToSQL(t *testing.T) {
@@ -98,35 +100,23 @@ func TestCondition_toAtomicSQL(t *testing.T) {
 	if actualErr == nil || errors.Is(actualErr, expectedErrInvalidOp) {
 		t.Errorf("期望错误: %v, 实际错误: %v", expectedErrInvalidOp, actualErr)
 	}
+	if actualSQL != "" {
+		t.Errorf("期望 SQL: %s, 实际 SQL: %s", "", actualSQL)
+	}
+	if actualArgs != nil {
+		t.Errorf("期望参数: %v, 实际参数: %v", nil, actualArgs)
+	}
 
+	// 测试IN操作符RHS非切片的错误情况
 	condInvalidIn := Condition{
 		Operator: "IN",
-		LHS:      "column",
-		RHS:      "not a slice",
+		LHS:      "status",
+		RHS:      "active", // 非切片类型
 	}
-	expectedErrInvalidIn := fmt.Errorf("RHS must be a slice for IN operator")
 
+	// 使用包级错误变量进行比较
 	actualSQL, actualArgs, actualErr = condInvalidIn.toAtomicSQL()
-	if actualErr == nil || errors.Is(actualErr, expectedErrInvalidIn) {
-		t.Errorf("期望错误: %v, 实际错误: %v", expectedErrInvalidIn, actualErr)
-	}
-
-	// 原有的测试用例
-	// 可以添加更多的测试用例来覆盖不同的原子条件操作符
-	// 这里简单示例一个测试用例
-	cond := Condition{
-		Operator: "=",
-		LHS:      "column",
-		RHS:      "value",
-	}
-	expectedSQL := "column = ?"
-	expectedArgs := []interface{}{"value"}
-
-	actualSQL, actualArgs, actualErr = cond.toAtomicSQL()
-	if actualSQL != expectedSQL {
-		t.Errorf("期望 SQL: %s, 实际 SQL: %s", expectedSQL, actualSQL)
-	}
-	if !reflect.DeepEqual(actualArgs, expectedArgs) {
-		t.Errorf("期望参数: %v, 实际参数: %v", expectedArgs, actualArgs)
-	}
+	assert.ErrorIs(t, actualErr, ErrRHSNotSlice)
+	assert.Empty(t, actualSQL)
+	assert.Nil(t, actualArgs)
 }
