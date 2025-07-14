@@ -40,6 +40,8 @@ func TestGet(t *testing.T) {
 			// 打印响应体
 			// t.Log(resp.String())
 			// 打印trace信息
+			// 比较好的一张图，表示时间的关系
+			// https://vearne.cc/archives/39953
 			PrintTraceInfo(resp)
 			traceInfo := resp.Request.TraceInfo()
 			t.Logf("Reqeust trace info")
