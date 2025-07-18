@@ -16,62 +16,68 @@ func TestCondition_ToSQL(t *testing.T) {
 		condition    Condition
 		expectedSQL  string
 		expectedArgs []interface{}
-	}{{
-		name: "原子条件 = 操作符",
-		condition: Condition{
-			Operator: "=",
-			LHS:      "column",
-			RHS:      "value",
+	}{
+		{
+			name: "原子条件 = 操作符",
+			condition: Condition{
+				Operator: "=",
+				LHS:      "column",
+				RHS:      "value",
+			},
+			expectedSQL:  "column = ?",
+			expectedArgs: []interface{}{"value"},
 		},
-		expectedSQL:  "column = ?",
-		expectedArgs: []interface{}{"value"},
-	}, {name: "原子条件 IN 操作符",
-		condition: Condition{
-			Operator: "IN",
-			LHS:      "column",
-			RHS:      []interface{}{1, 2, 3},
+		{
+			name: "原子条件 IN 操作符",
+			condition: Condition{
+				Operator: "IN",
+				LHS:      "column",
+				RHS:      []interface{}{1, 2, 3},
+			},
+			expectedSQL:  "column IN (?, ?, ?)",
+			expectedArgs: []interface{}{1, 2, 3},
 		},
-		expectedSQL:  "column IN (?, ?, ?)",
-		expectedArgs: []interface{}{1, 2, 3},
-	}, {
-		name: "逻辑条件 && 操作符",
-		condition: Condition{
-			Operator: "&&",
-			Conditions: []Condition{
-				{
-					Operator: "=",
-					LHS:      "col1",
-					RHS:      "val1",
-				},
-				{
-					Operator: "=",
-					LHS:      "col2",
-					RHS:      "val2",
+		{
+			name: "逻辑条件 && 操作符",
+			condition: Condition{
+				Operator: "&&",
+				Conditions: []Condition{
+					{
+						Operator: "=",
+						LHS:      "col1",
+						RHS:      "val1",
+					},
+					{
+						Operator: "=",
+						LHS:      "col2",
+						RHS:      "val2",
+					},
 				},
 			},
+			expectedSQL:  "(col1 = ? AND col2 = ?)",
+			expectedArgs: []interface{}{"val1", "val2"},
 		},
-		expectedSQL:  "(col1 = ? AND col2 = ?)",
-		expectedArgs: []interface{}{"val1", "val2"},
-	}, {
-		name: "逻辑条件 || 操作符",
-		condition: Condition{
-			Operator: "||",
-			Conditions: []Condition{
-				{
-					Operator: "=",
-					LHS:      "col1",
-					RHS:      "val1",
-				},
-				{
-					Operator: "=",
-					LHS:      "col2",
-					RHS:      "val2",
+		{
+			name: "逻辑条件 || 操作符",
+			condition: Condition{
+				Operator: "||",
+				Conditions: []Condition{
+					{
+						Operator: "=",
+						LHS:      "col1",
+						RHS:      "val1",
+					},
+					{
+						Operator: "=",
+						LHS:      "col2",
+						RHS:      "val2",
+					},
 				},
 			},
+			expectedSQL:  "(col1 = ? OR col2 = ?)",
+			expectedArgs: []interface{}{"val1", "val2"},
 		},
-		expectedSQL:  "(col1 = ? OR col2 = ?)",
-		expectedArgs: []interface{}{"val1", "val2"},
-	}}
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
