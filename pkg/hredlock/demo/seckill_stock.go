@@ -225,6 +225,7 @@ func seckillV3(ctx context.Context, redisClient *redis.Client, rs *redsync.Redsy
 			return false, fmt.Errorf("获取全局库存失败: %w", err)
 		}
 		if globalStock <= 0 {
+			log.Printf("用户 %s 秒杀失败（全局库存不足）, segmentKey: %s, stock: %d", userID, segmentKey, stock)
 			return false, nil // 全局库存不足
 		}
 
@@ -304,7 +305,7 @@ func main() {
 	successCount := 0
 	failCount := 0
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200; i++ {
 		wg.Add(1)
 		go func(userID string) {
 			defer wg.Done()
