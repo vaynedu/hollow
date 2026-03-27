@@ -107,6 +107,11 @@ func (app *App) AddRoute(method, path string, handlerFunc gin.HandlerFunc) {
 	app.Engine.Handle(method, path, handlerFunc)
 }
 
+// Group 创建路由组
+func (app *App) Group(relativePath string, handlers ...gin.HandlerFunc) *gin.RouterGroup {
+	return app.Engine.Group(relativePath, handlers...)
+}
+
 func (app *App) UseMiddleware(middlewares ...middleware.Middleware) {
 	// 将 middleware.Middleware 类型的切片转换为 gin.HandlerFunc 类型的切片
 	handlerFuncs := make([]gin.HandlerFunc, 0)
