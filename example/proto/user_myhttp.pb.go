@@ -10,30 +10,94 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type HelloServiceService interface {
-	SayHello(ctx context.Context, req *HelloRequest) (resp *HelloResponse, err error)
+type UserServiceService interface {
+	CreateUser(ctx context.Context, req *CreateUserRequest) (resp *CreateUserResponse, err error)
+	GetUser(ctx context.Context, req *GetUserRequest) (resp *GetUserResponse, err error)
+	QueryUsers(ctx context.Context, req *QueryUsersRequest) (resp *QueryUsersResponse, err error)
+	UpdateUser(ctx context.Context, req *UpdateUserRequest) (resp *UpdateUserResponse, err error)
+	DeleteUser(ctx context.Context, req *DeleteUserRequest) (resp *DeleteUserResponse, err error)
 }
 
-type HelloService struct {
-	svc HelloServiceService
+type UserService struct {
+	svc UserServiceService
 }
 
-func RegisterHelloServiceGinRouter(router *gin.Engine, svc HelloServiceService) {
-	s := HelloService{
+func RegisterUserServiceGinRouter(router *gin.Engine, svc UserServiceService) {
+	s := UserService{
 		svc: svc,
 	}
 
-	router.GET("/v1/hello", s.SayHello)
+	router.POST("/v1/users", s.CreateUser)
+
+	router.GET("/v1/users/{id}", s.GetUser)
+
+	router.GET("/v1/users", s.QueryUsers)
 
 }
 
-func (s *HelloService) SayHello(c *gin.Context) {
-	var req HelloRequest
+func (s *UserService) CreateUser(c *gin.Context) {
+	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := s.svc.SayHello(c.Request.Context(), &req)
+	resp, err := s.svc.CreateUser(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+func (s *UserService) GetUser(c *gin.Context) {
+	var req GetUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := s.svc.GetUser(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+func (s *UserService) QueryUsers(c *gin.Context) {
+	var req QueryUsersRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := s.svc.QueryUsers(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+func (s *UserService) UpdateUser(c *gin.Context) {
+	var req UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := s.svc.UpdateUser(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+func (s *UserService) DeleteUser(c *gin.Context) {
+	var req DeleteUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := s.svc.DeleteUser(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -42,10 +106,26 @@ func (s *HelloService) SayHello(c *gin.Context) {
 }
 
 // 新增未实现的服务结构体
-type UnimplementedHelloServiceService struct{}
+type UnimplementedUserServiceService struct{}
 
 // 为每个方法提供错误实现
 
-func (u *UnimplementedHelloServiceService) SayHello(ctx context.Context, req *HelloRequest) (resp *HelloResponse, err error) {
-	return nil, fmt.Errorf("HelloServiceService.SayHello 方法未实现")
+func (u *UnimplementedUserServiceService) CreateUser(ctx context.Context, req *CreateUserRequest) (resp *CreateUserResponse, err error) {
+	return nil, fmt.Errorf("UserServiceService.CreateUser 方法未实现")
+}
+
+func (u *UnimplementedUserServiceService) GetUser(ctx context.Context, req *GetUserRequest) (resp *GetUserResponse, err error) {
+	return nil, fmt.Errorf("UserServiceService.GetUser 方法未实现")
+}
+
+func (u *UnimplementedUserServiceService) QueryUsers(ctx context.Context, req *QueryUsersRequest) (resp *QueryUsersResponse, err error) {
+	return nil, fmt.Errorf("UserServiceService.QueryUsers 方法未实现")
+}
+
+func (u *UnimplementedUserServiceService) UpdateUser(ctx context.Context, req *UpdateUserRequest) (resp *UpdateUserResponse, err error) {
+	return nil, fmt.Errorf("UserServiceService.UpdateUser 方法未实现")
+}
+
+func (u *UnimplementedUserServiceService) DeleteUser(ctx context.Context, req *DeleteUserRequest) (resp *DeleteUserResponse, err error) {
+	return nil, fmt.Errorf("UserServiceService.DeleteUser 方法未实现")
 }

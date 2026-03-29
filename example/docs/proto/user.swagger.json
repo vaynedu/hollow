@@ -1,12 +1,12 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "定义包名",
+    "title": "proto/user.proto",
     "version": "version not set"
   },
   "tags": [
     {
-      "name": "HelloService"
+      "name": "UserService"
     }
   ],
   "consumes": [
@@ -16,15 +16,15 @@
     "application/json"
   ],
   "paths": {
-    "/v1/hello": {
+    "/v1/users": {
       "get": {
-        "summary": "定义 RPC 方法，接收 HelloRequest 并返回 HelloResponse\n新增 option 指定 google.api.http，这里设置为 HTTP GET 请求，路径为 /hello/{name}",
-        "operationId": "HelloService_SayHello",
+        "summary": "查询用户列表",
+        "operationId": "UserService_QueryUsers",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/marketingHelloResponse"
+              "$ref": "#/definitions/exampleQueryUsersResponse"
             }
           },
           "default": {
@@ -36,29 +36,297 @@
         },
         "parameters": [
           {
-            "name": "name",
-            "description": "请求中的名称字段",
+            "name": "username",
             "in": "query",
             "required": false,
+            "type": "string"
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "post": {
+        "summary": "创建用户",
+        "operationId": "UserService_CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/exampleCreateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/exampleCreateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "summary": "获取用户详情",
+        "operationId": "UserService_GetUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/exampleGetUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
             "type": "string"
           }
         ],
         "tags": [
-          "HelloService"
+          "UserService"
+        ]
+      },
+      "delete": {
+        "summary": "删除用户",
+        "operationId": "UserService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/exampleDeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "put": {
+        "summary": "更新用户",
+        "operationId": "UserService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/exampleUpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserServiceUpdateUserBody"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
         ]
       }
     }
   },
   "definitions": {
-    "marketingHelloResponse": {
+    "UserServiceUpdateUserBody": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "title": "更新用户请求"
+    },
+    "exampleCreateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "title": "创建用户请求"
+    },
+    "exampleCreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "创建用户响应"
+    },
+    "exampleDeleteUserResponse": {
       "type": "object",
       "properties": {
         "message": {
-          "type": "string",
-          "title": "响应中的问候语字段"
+          "type": "string"
         }
       },
-      "title": "定义响应消息"
+      "title": "删除用户响应"
+    },
+    "exampleGetUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/exampleUser"
+        }
+      },
+      "title": "获取用户响应"
+    },
+    "exampleQueryUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/exampleUser"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "查询用户列表响应"
+    },
+    "exampleUpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "更新用户响应"
+    },
+    "exampleUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "age": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "address": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "title": "用户"
     },
     "protobufAny": {
       "type": "object",

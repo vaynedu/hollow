@@ -1,23 +1,15 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/vaynedu/hollow"
-	"github.com/vaynedu/hollow/example/handler"
-	"github.com/vaynedu/hollow/internal/middleware"
+	"github.com/vaynedu/hollow/example/router"
 )
 
 func main() {
-
 	// 创建App选项
 	opts := hollow.AppOption{
-		AddMiddlewares: []middleware.Middleware{
-			middleware.NewRequestIDMiddleware(), // 示例 request_id 中间件
-		},
-		RemoveMiddlewares: []middleware.Middleware{
-			//middleware.NewResponseMiddleware(), // 示例 统一reponse打印
-		},
+		ConfigPath: ".",
+		ConfigName: "conf",
 	}
 
 	// 创建 App 实例
@@ -27,7 +19,7 @@ func main() {
 	}
 
 	// 注册路由
-	app.AddRoute(http.MethodGet, "/hello", handler.HelloHandler)
+	router.RegisterRoutes(app)
 
 	// 启动服务
 	app.Start()

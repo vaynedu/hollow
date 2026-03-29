@@ -1,36 +1,123 @@
 syntax = "proto3";
 
-// 定义包名
-package hollow.marketing;
+package hollow.example;
 
-option go_package = "proto/"; // 指定生成的 Go 代码的包名, 必须要带/
-option java_multiple_files = true;
-option java_outer_classname = "marketingProto";
+option go_package = "proto/";
 
-
-// 导入 google.api.http 扩展定义
 import "google/api/annotations.proto";
 
-
-// 定义请求消息
-message HelloRequest {
-  // 请求中的名称字段
-  string name = 1;
+// 用户
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phone = 4;
+  int32 age = 5;
+  string address = 6;
+  string created_at = 7;
+  string updated_at = 8;
 }
 
-// 定义响应消息
-message HelloResponse {
-  // 响应中的问候语字段
+// 创建用户请求
+message CreateUserRequest {
+  string username = 1;
+  string email = 2;
+  string phone = 3;
+  int32 age = 4;
+  string address = 5;
+}
+
+// 创建用户响应
+message CreateUserResponse {
+  string id = 1;
+  string message = 2;
+}
+
+// 获取用户请求
+message GetUserRequest {
+  string id = 1;
+}
+
+// 获取用户响应
+message GetUserResponse {
+  User user = 1;
+}
+
+// 查询用户列表请求
+message QueryUsersRequest {
+  string username = 1;
+  string email = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+// 查询用户列表响应
+message QueryUsersResponse {
+  repeated User users = 1;
+  int32 total = 2;
+}
+
+// 更新用户请求
+message UpdateUserRequest {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phone = 4;
+  int32 age = 5;
+  string address = 6;
+}
+
+// 更新用户响应
+message UpdateUserResponse {
   string message = 1;
 }
 
-// 定义服务
-service HelloService {
-  // 定义 RPC 方法，接收 HelloRequest 并返回 HelloResponse
-  // 新增 option 指定 google.api.http，这里设置为 HTTP GET 请求，路径为 /hello/{name}
-  rpc SayHello (HelloRequest) returns (HelloResponse) {
+// 删除用户请求
+message DeleteUserRequest {
+  string id = 1;
+}
+
+// 删除用户响应
+message DeleteUserResponse {
+  string message = 1;
+}
+
+// 用户服务
+service UserService {
+  // 创建用户
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {
     option (google.api.http) = {
-      get: "/v1/hello"
+      post: "/v1/users"
+      body: "*"
+    };
+  }
+
+  // 获取用户详情
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{id}"
+    };
+  }
+
+  // 查询用户列表
+  rpc QueryUsers (QueryUsersRequest) returns (QueryUsersResponse) {
+    option (google.api.http) = {
+      get: "/v1/users"
+    };
+  }
+
+  // 更新用户
+  rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/{id}"
+      body: "*"
+    };
+  }
+
+  // 删除用户
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse) {
+    option (google.api.http) = {
+      delete: "/v1/users/{id}"
     };
   }
 }
