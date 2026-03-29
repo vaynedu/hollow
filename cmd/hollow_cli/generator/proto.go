@@ -19,10 +19,11 @@ type ProtoGenerator struct {
 	OutputDir       string
 	ModuleName      string
 	FrameworkImport string
+	Force           bool // 强制覆盖已存在的文件
 }
 
 // GenerateProto 生成HTTP处理代码
-func GenerateProto(protoPath string) error {
+func GenerateProto(protoPath string, force bool) error {
 	// 替换路径中的 ~ 并转换路径
 	convertedPath, err := replaceTildeAndConvertPath(protoPath)
 	if err != nil {
@@ -44,6 +45,7 @@ func GenerateProto(protoPath string) error {
 		OutputDir:       filepath.Dir(protoPath),
 		ModuleName:      moduleName,
 		FrameworkImport: "github.com/vaynedu/hollow",
+		Force:           force,
 	}
 
 	// 生成 Handler 文件
@@ -100,10 +102,13 @@ func (g *ProtoGenerator) generateHandler(service *idl.Service) error {
 
 	outputPath := filepath.Join(handlerDir, strings.ToLower(service.Name)+"_handler.go")
 
-	// 检查文件是否已存在，如果存在则不覆盖
+	// 检查文件是否已存在
 	if _, err := os.Stat(outputPath); err == nil {
-		fmt.Printf("⚠️  Handler 文件已存在，跳过生成: %s\n", outputPath)
-		return nil
+		if !g.Force {
+			fmt.Printf("⚠️  Handler 文件已存在，跳过生成 (使用 -f 强制覆盖): %s\n", outputPath)
+			return nil
+		}
+		fmt.Printf("📝 强制覆盖 Handler 文件: %s\n", outputPath)
 	}
 
 	tmpl, err := template.New("handler").Parse(handlerTemplate)
@@ -137,10 +142,13 @@ func (g *ProtoGenerator) generateService(service *idl.Service) error {
 
 	outputPath := filepath.Join(serviceDir, strings.ToLower(service.Name)+"_service.go")
 
-	// 检查文件是否已存在，如果存在则不覆盖
+	// 检查文件是否已存在
 	if _, err := os.Stat(outputPath); err == nil {
-		fmt.Printf("⚠️  Service 文件已存在，跳过生成: %s\n", outputPath)
-		return nil
+		if !g.Force {
+			fmt.Printf("⚠️  Service 文件已存在，跳过生成 (使用 -f 强制覆盖): %s\n", outputPath)
+			return nil
+		}
+		fmt.Printf("📝 强制覆盖 Service 文件: %s\n", outputPath)
 	}
 
 	tmpl, err := template.New("service").Parse(serviceTemplate)

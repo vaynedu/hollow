@@ -34,6 +34,7 @@ func main() {
 
 	// proto 命令 - 从 proto 文件生成代码
 	var protoImportPaths []string
+	var force bool
 	var protoCmd = &cobra.Command{
 		Use:   "proto [proto文件路径]",
 		Short: "从 Protobuf 文件生成代码",
@@ -49,7 +50,7 @@ func main() {
 			}
 
 			// 2. 生成 Handler 和 Service 模板
-			if err := generator.GenerateProto(protoPath); err != nil {
+			if err := generator.GenerateProto(protoPath, force); err != nil {
 				log.Fatalf("生成 Handler 和 Service 失败: %v", err)
 			}
 
@@ -57,6 +58,7 @@ func main() {
 		},
 	}
 	protoCmd.Flags().StringSliceVarP(&protoImportPaths, "proto_path", "I", []string{}, "Protobuf 文件引用路径")
+	protoCmd.Flags().BoolVarP(&force, "force", "f", false, "强制覆盖已存在的文件")
 
 	// 添加子命令
 	rootCmd.AddCommand(initCmd)
