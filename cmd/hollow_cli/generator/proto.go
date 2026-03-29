@@ -158,6 +158,7 @@ func (g *ProtoGenerator) generateService(service *idl.Service) error {
 		"Package":     "service",
 		"ModuleName":  g.ModuleName,
 		"ServiceName": service.Name,
+		"ServiceVar":  strings.ToLower(service.Name[:1]) + service.Name[1:],
 		"Methods":     service.Methods,
 	}
 
@@ -215,31 +216,39 @@ func (g *ProtoGenerator) generateRouter(service *idl.Service) error {
 var handlerTemplate = `package handler
 
 import (
-	"net/http"
-
-	"{{.ModuleName}}/service"
 	"github.com/gin-gonic/gin"
-	"{{.FrameworkImport}}/pkg/hecode"
+	"{{.ModuleName}}/proto"
+	"{{.ModuleName}}/service"
 )
 
 {{range .Methods}}
 // {{.Name}}Handler {{.Name}} 接口处理器
 // TODO: 实现业务逻辑
 func {{.Name}}Handler(c *gin.Context) {
-	var req {{.RequestType}}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, hecode.Error(400, err.Error()))
+	var req proto.{{.RequestType}}
+	{{if eq .HTTPMethod "GET"}}
+	// GET 请求：使用 ShouldBindQuery 绑定查询参数
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.Error(err)
 		return
 	}
+	{{else}}
+	// POST/PUT/DELETE 请求：使用 ShouldBindJSON 绑定请求体
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(err)
+		return
+	}
+	{{end}}
 
 	// 调用 service 层
 	resp, err := service.{{.Name}}(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, hecode.Error(500, err.Error()))
+		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, hecode.Success(resp))
+	// 设置数据，由responseMiddleware统一处理响应
+	c.Set("data", resp)
 }
 {{end}}
 `
@@ -249,7 +258,6 @@ var serviceTemplate = `package service
 
 import (
 	"context"
-	"fmt"
 
 	"{{.ModuleName}}/proto"
 )
@@ -262,14 +270,21 @@ func New{{.ServiceName}}Service() *{{.ServiceName}}Service {
 	return &{{.ServiceName}}Service{}
 }
 
+// 全局服务实例
+var {{.ServiceVar}}Service = New{{.ServiceName}}Service()
+
 {{range .Methods}}
+// {{.Name}} {{.Name}} business logic (全局函数，供Handler调用)
+func {{.Name}}(ctx context.Context, req *proto.{{.RequestType}}) (*proto.{{.ResponseType}}, error) {
+	return {{$.ServiceVar}}Service.{{.Name}}(ctx, req)
+}
+
 // {{.Name}} {{.Name}} business logic
 // TODO: Implement specific business logic
 func (s *{{$.ServiceName}}Service) {{.Name}}(ctx context.Context, req *proto.{{.RequestType}}) (*proto.{{.ResponseType}}, error) {
 	// TODO: Implement business logic here
-	return &proto.{{.ResponseType}}{
-		// Fill response fields
-	}, fmt.Errorf("not implemented")
+	// 默认返回空响应，业务同学根据实际需求修改
+	return &proto.{{.ResponseType}}{}, nil
 }
 {{end}}
 `
@@ -279,17 +294,11 @@ var routerTemplate = `package router
 
 import (
 	"{{.ModuleName}}/handler"
-	"{{.ModuleName}}/service"
 	"github.com/gin-gonic/gin"
 )
 
 // Register{{.ServiceName}}Routes 注册 {{.ServiceName}} 服务路由
-// 在 main.go 中调用此函数注册路由
-func Register{{.ServiceName}}Routes(r *gin.RouterGroup) {
-	// 创建服务实例
-	{{.ServiceVar}}Service := service.New{{.ServiceName}}Service()
-	_ = {{.ServiceVar}}Service // 使用服务实例
-
+func Register{{.ServiceName}}Routes(r *gin.Engine) {
 {{range .Methods}}
 	// {{.Name}} - {{.HTTPMethod}} {{.Path}}
 	r.{{.HTTPMethod}}("{{.Path}}", handler.{{.HandlerName}})

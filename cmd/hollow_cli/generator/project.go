@@ -12,6 +12,7 @@ type ProjectConfig struct {
 	ModuleName       string
 	GoVersion        string
 	FrameworkVersion string
+	HollowPath       string
 }
 
 func InitProject(projectName, moduleName string) error {
@@ -22,11 +23,18 @@ func InitProject(projectName, moduleName string) error {
 		moduleName = "github.com/example/" + projectName
 	}
 
+	// 计算 hollow 框架的相对路径
+	// 生成的项目在 hollow/cmd/hollow_cli/<projectName>
+	// hollow 框架在 hollow 目录
+	// 所以相对路径是 ../../..
+	hollowPath := "../../.."
+
 	config := ProjectConfig{
 		ProjectName:      projectName,
 		ModuleName:       moduleName,
 		GoVersion:        "1.23.4",
 		FrameworkVersion: "v0.1.0",
+		HollowPath:       hollowPath,
 	}
 
 	if err := os.MkdirAll(projectName, 0755); err != nil {
@@ -44,6 +52,7 @@ func InitProject(projectName, moduleName string) error {
 		{filepath.Join(projectName, ".gitignore"), gitignoreTemplate, config},
 		{filepath.Join(projectName, "Makefile"), makefileTemplate, config},
 		{filepath.Join(projectName, "README.md"), readmeTemplate, config},
+		{filepath.Join(projectName, "router", "router.go"), baseRouterTemplate, config},
 		{filepath.Join(projectName, "handler", "example.go"), exampleHandlerTemplate, config},
 		{filepath.Join(projectName, "service", "example.go"), exampleServiceTemplate, config},
 		{filepath.Join(projectName, "proto", "example.proto"), exampleProtoTemplate, config},
@@ -59,14 +68,17 @@ func InitProject(projectName, moduleName string) error {
 		}
 	}
 
-	fmt.Printf("Project %s created successfully!\n", projectName)
-	fmt.Printf("Project path: ./%s\n", projectName)
-	fmt.Println("\nNext steps:")
+	fmt.Printf("✅ Project %s created successfully!\n", projectName)
+	fmt.Printf("📁 Project path: ./%s\n", projectName)
+	fmt.Println("\n🚀 Quick start:")
 	fmt.Printf("  cd %s\n", projectName)
-	fmt.Println("  go mod tidy")
-	fmt.Println("  go run main.go")
-	fmt.Println("\nGenerate proto code:")
-	fmt.Println("  hollow-cli proto proto/example.proto")
+	fmt.Println("  make init    # 生成代码 + 安装依赖")
+	fmt.Println("  make run     # 启动服务")
+	fmt.Println("\n📖 Available commands:")
+	fmt.Println("  make proto   # 生成 protobuf 和框架代码")
+	fmt.Println("  make deps    # 安装依赖")
+	fmt.Println("  make build   # 构建项目")
+	fmt.Println("  make test    # 运行测试")
 
 	return nil
 }
@@ -93,14 +105,14 @@ require (
 	github.com/vaynedu/hollow {{.FrameworkVersion}}
 	go.uber.org/zap v1.27.0
 )
+
+replace github.com/vaynedu/hollow => {{.HollowPath}}
 `
 
 var mainTemplate = `package main
 
 import (
-	"net/http"
-
-	"{{.ModuleName}}/handler"
+	"{{.ModuleName}}/router"
 	"github.com/vaynedu/hollow"
 )
 
@@ -115,7 +127,8 @@ func main() {
 		panic(err)
 	}
 
-	app.AddRoute(http.MethodGet, "/hello", handler.HelloHandler)
+	// 注册所有路由
+	router.RegisterRoutes(app)
 
 	app.Start()
 	app.End()
@@ -170,33 +183,85 @@ Thumbs.db
 /bin/
 `
 
-var makefileTemplate = `.PHONY: build run test clean proto
+var makefileTemplate = `.PHONY: build run test clean proto deps fmt init
 
+# 默认构建目标
 build:
 	go build -o bin/{{.ProjectName}} main.go
 
+# 运行服务
 run:
 	go run main.go
 
+# 运行测试
 test:
 	go test -v ./...
 
+# 清理构建产物
 clean:
 	rm -rf bin/
 
-proto:
-	hollow-cli proto proto/example.proto
+# 获取 proto 目录下的所有 .proto 文件
+PROTO_FILES := $(wildcard proto/*.proto)
 
+# 检测 hollow-cli 路径
+# 优先使用 PATH 中的 hollow-cli，如果没有则使用相对路径
+HOLLOW_CLI := $(shell which hollow-cli 2>/dev/null || echo "../hollow-cli")
+
+# 生成 protobuf 代码和 Hollow 框架代码
+proto:
+	@echo "🚀 生成 protobuf 代码..."
+	@mkdir -p docs
+	@if [ -z "$(PROTO_FILES)" ]; then \
+		echo "⚠️  未找到 proto 文件，跳过生成"; \
+	else \
+		protoc $(PROTO_FILES) \
+			-I . \
+			--proto_path=/usr/local/include/ \
+			--proto_path=$$(go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.16.0/third_party/googleapis/ \
+			--go_out=. --go_opt=paths=source_relative \
+			--myhttp_out=. --myhttp_opt=paths=source_relative \
+			--openapiv2_out=./docs/; \
+		echo "✅ protobuf 代码生成完成"; \
+		echo "🚀 生成 Hollow 框架代码..."; \
+		echo "   使用 hollow-cli: $(HOLLOW_CLI)"; \
+		for proto_file in $(PROTO_FILES); do \
+			echo "   处理: $$proto_file"; \
+			$(HOLLOW_CLI) proto $$proto_file; \
+		done; \
+		echo "✅ Hollow 框架代码生成完成"; \
+	fi
+
+# 安装依赖
 deps:
 	go mod tidy
 
+# 格式化代码
 fmt:
 	go fmt ./...
-`
+
+# 一键初始化项目（生成代码 + 安装依赖）
+init: proto deps
+	@echo "✅ 项目初始化完成，运行 'make run' 启动服务"`
 
 var readmeTemplate = `# {{.ProjectName}}
 
 A Go project based on [Hollow](https://github.com/vaynedu/hollow).
+`
+
+var baseRouterTemplate = `package router
+
+import (
+	"github.com/vaynedu/hollow"
+)
+
+// RegisterRoutes 注册所有路由
+// 在 main.go 中调用此函数注册路由
+// 每个服务的路由在对应的 *_router.go 文件中定义
+func RegisterRoutes(app *hollow.App) {
+	// TODO: 在这里注册所有服务的路由
+	// 例如: RegisterExampleServiceRoutes(app.Engine)
+}
 `
 
 var exampleHandlerTemplate = `package handler
