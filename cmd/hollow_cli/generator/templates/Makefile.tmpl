@@ -1,0 +1,21 @@
+.PHONY: build run test clean proto
+
+PROTO_INCLUDE ?= $(shell go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.16.0/third_party/googleapis
+
+build:
+	go build -o bin/{{.ProjectName}} .
+
+run:
+	go run .
+
+test:
+	go test ./...
+
+clean:
+	rm -rf bin/
+
+proto:
+	protoc proto/*.proto \
+		-I . -I $(PROTO_INCLUDE) \
+		--go_out=. --go_opt=paths=source_relative \
+		--myhttp_out=. --myhttp_opt=paths=source_relative

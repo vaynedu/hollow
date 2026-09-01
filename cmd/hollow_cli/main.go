@@ -25,7 +25,7 @@ func main() {
 			if len(args) > 0 {
 				projectName = args[0]
 			}
-			if err := generator.InitProject(projectName, moduleName); err != nil {
+			if err := generator.InitProject(projectName, generator.ProjectOptions{Module: moduleName}); err != nil {
 				log.Fatalf("初始化项目失败: %v", err)
 			}
 		},

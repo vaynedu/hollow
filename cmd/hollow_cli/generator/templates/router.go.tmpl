@@ -1,0 +1,15 @@
+package router
+
+import (
+	"{{.ModuleName}}/proto"
+	"{{.ModuleName}}/service"
+	"github.com/vaynedu/hollow"
+)
+
+// Register 注册项目的 HTTP 路由。
+func Register(app *hollow.App) {
+	proto.Register{{.ServiceName}}GinRouter(
+		app.Engine,
+		service.Get(),
+	)
+}

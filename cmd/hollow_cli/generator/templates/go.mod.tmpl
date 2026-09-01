@@ -1,0 +1,8 @@
+module {{.ModuleName}}
+
+go {{.GoVersion}}
+
+require github.com/vaynedu/hollow {{.HollowVersion}}
+{{if .HollowPath}}
+replace github.com/vaynedu/hollow => {{.HollowPath}}
+{{end}}

@@ -1,0 +1,15 @@
+package service
+
+import "{{.ModuleName}}/proto"
+
+// Service 实现项目的 Proto Service。
+type Service struct {
+	proto.Unimplemented{{.ServiceName}}Service
+}
+
+var instance = new(Service)
+
+// Get 返回项目唯一的 Service 实例。
+func Get() *Service {
+	return instance
+}
