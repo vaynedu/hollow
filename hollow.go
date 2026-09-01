@@ -5,6 +5,7 @@ import (
 	"github.com/vaynedu/hollow/internal/config"
 	"github.com/vaynedu/hollow/internal/logger"
 	"github.com/vaynedu/hollow/internal/middleware"
+	"github.com/vaynedu/hollow/pkg/hecode"
 	"go.uber.org/zap"
 )
 
@@ -51,6 +52,9 @@ func NewApp(opts AppOption) (*App, error) {
 		config: cfg,
 	}
 	app.Engine.Use(middleware.RegisterDefaultMiddlewares(app.Logger)...)
+	app.Engine.NoRoute(func(c *gin.Context) {
+		_ = c.Error(hecode.ErrNotFound)
+	})
 
 	return app, nil
 }

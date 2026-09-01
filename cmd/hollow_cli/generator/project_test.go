@@ -332,7 +332,7 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		}
 	}
 
-	for _, file := range []string{"service/service.go", "dao/dao.go", "model/model.go"} {
+	for _, file := range []string{"service/service.go", "service/health.go", "dao/dao.go", "model/model.go"} {
 		content := readProjectFile(t, target, file)
 		for _, forbidden := range []string{"/proto", "gin-gonic", "gorm.io"} {
 			if strings.Contains(content, forbidden) {

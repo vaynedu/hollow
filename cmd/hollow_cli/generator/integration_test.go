@@ -4,11 +4,15 @@ package generator
 
 import (
 	"bytes"
+	"encoding/json"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestGeneratedProjectEndToEnd(t *testing.T) {
@@ -51,9 +55,72 @@ func TestGeneratedProjectEndToEnd(t *testing.T) {
 	for _, command := range [][]string{
 		{"make", "deps"},
 		{"go", "test", "./..."},
-		{"go", "build", "./..."},
+		{"make", "build"},
 	} {
 		runCommand(t, target, command[0], command[1:]...)
+	}
+	assertGeneratedHealthEndpoint(t, target)
+}
+
+func assertGeneratedHealthEndpoint(t *testing.T, target string) {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	_ = listener.Close()
+
+	confPath := filepath.Join(target, "conf.yaml")
+	conf := []byte("server:\n  host: " + address + "\n  shutdown_timeout: 2s\nlog:\n  level: error\n  output_mode: console\n")
+	if err := os.WriteFile(confPath, conf, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	command := exec.Command(filepath.Join(target, "bin", "lifelog-server"))
+	command.Dir = target
+	var output bytes.Buffer
+	command.Stdout = &output
+	command.Stderr = &output
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = command.Process.Signal(os.Interrupt)
+		done := make(chan error, 1)
+		go func() { done <- command.Wait() }()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			_ = command.Process.Kill()
+			<-done
+		}
+	}()
+
+	client := &http.Client{Timeout: time.Second}
+	var response *http.Response
+	for range 50 {
+		response, err = client.Get("http://" + address + "/v1/health")
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("request generated health endpoint: %v\n%s", err, output.String())
+	}
+	defer response.Body.Close()
+	var envelope struct {
+		Code int `json:"code"`
+		Data struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&envelope); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || envelope.Code != 0 || envelope.Data.Status != "ok" {
+		t.Fatalf("status=%d envelope=%+v", response.StatusCode, envelope)
 	}
 }
 

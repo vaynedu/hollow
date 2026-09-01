@@ -37,6 +37,16 @@ func TestAppDoesNotRegisterServiceHealthEndpoint(t *testing.T) {
 	}
 }
 
+func TestUnknownRouteReturnsNotFound(t *testing.T) {
+	app := newTestApp(t)
+	rec := httptest.NewRecorder()
+	app.Engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/-/health", nil))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func newTestApp(t *testing.T) *hollow.App {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
