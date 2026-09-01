@@ -12,8 +12,17 @@ import (
 
 func TestRootCommandExposesOnlyInit(t *testing.T) {
 	root := newRootCommand()
+	root.SetOut(&bytes.Buffer{})
+	root.SetArgs([]string{"--help"})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
 	var names []string
 	for _, cmd := range root.Commands() {
+		if cmd.Name() == "help" {
+			continue
+		}
 		names = append(names, cmd.Name())
 	}
 
@@ -80,5 +89,24 @@ func TestInitCommandPassesAllOptionsToGenerator(t *testing.T) {
 	}
 	if !reflect.DeepEqual(gotOptions, wantOptions) {
 		t.Fatalf("options=%+v, want %+v", gotOptions, wantOptions)
+	}
+}
+
+func TestInitCommandUsesDefaultHollowVersion(t *testing.T) {
+	var gotOptions generator.ProjectOptions
+	originalInitProject := initProject
+	initProject = func(_ string, options generator.ProjectOptions) error {
+		gotOptions = options
+		return nil
+	}
+	t.Cleanup(func() { initProject = originalInitProject })
+
+	root := newRootCommand()
+	root.SetArgs([]string{"init", "lifelog-server", "--hollow-path", "/repo/hollow"})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gotOptions.HollowVersion, "v1.0.0"; got != want {
+		t.Fatalf("hollow version=%q, want %q", got, want)
 	}
 }

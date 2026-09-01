@@ -12,9 +12,10 @@ var (
 
 func newRootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use:     "hollow-cli",
-		Short:   "Hollow 框架项目生成工具",
-		Version: cliVersion,
+		Use:               "hollow-cli",
+		Short:             "Hollow 框架项目生成工具",
+		Version:           cliVersion,
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
 	root.AddCommand(newInitCommand())
 	return root

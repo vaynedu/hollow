@@ -6,11 +6,13 @@
 ```
 hollow/
 ├── cmd/                          # 命令行工具（脚手架）
-│   └── hollow-cli/               # IDL代码生成器
-│       ├── main.go               # CLI入口（Cobra）
-│       └── generator/            # 代码生成逻辑
-│           ├── proto.go          # Protobuf解析生成
-│           └── thrift.go         # Thrift解析生成（预留）
+│   └── hollow_cli/               # 项目脚手架工具
+│       ├── main.go               # CLI入口
+│       ├── command.go            # init 命令定义
+│       └── generator/            # 项目骨架生成逻辑
+│           ├── project.go        # 项目配置与目录生成
+│           ├── render.go         # 嵌入模板渲染
+│           └── templates/        # 项目骨架模板
 ├── internal/                     # 框架核心实现（不对外暴露）
 │   ├── config/                   # 配置管理（本地+远程热加载）
 │   │   ├── loader.go             # 配置加载器
