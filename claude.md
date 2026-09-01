@@ -18,7 +18,7 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 
    ```bash
    git clone https://github.com/googleapis/googleapis.git /absolute/path/to/googleapis
-   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.1
    (cd /path/to/protoc-gen-myhttp && go install .)
    ```
 

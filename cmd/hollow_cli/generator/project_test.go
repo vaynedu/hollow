@@ -343,7 +343,7 @@ func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
 		"Go 1.25+",
 		"Protocol Buffers 编译器",
 		"git clone https://github.com/googleapis/googleapis.git /absolute/path/to/googleapis",
-		"go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11",
+		"go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.1\n",
 		"(cd /path/to/protoc-gen-myhttp && go install .)",
 		"make proto PROTO_INCLUDE=/absolute/path/to/googleapis",
 		"/absolute/path/to/googleapis/google/api/annotations.proto",
