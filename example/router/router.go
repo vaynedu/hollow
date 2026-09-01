@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/vaynedu/hollow"
+
 	"github.com/vaynedu/hollow/example/proto"
 	"github.com/vaynedu/hollow/example/service"
 )

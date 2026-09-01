@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/vaynedu/hollow"
+
 	"github.com/vaynedu/hollow/example/config"
 	"github.com/vaynedu/hollow/example/router"
 )

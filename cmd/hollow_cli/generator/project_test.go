@@ -1,7 +1,9 @@
 package generator
 
 import (
+	"bytes"
 	"errors"
+	"go/format"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -200,6 +202,43 @@ func TestInitProjectGeneratesGoldenTree(t *testing.T) {
 		"service/service.go",
 	}
 	assertExactTree(t, target, want)
+}
+
+func TestInitProjectRendersGofmtStableGoFiles(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "lifelog-server")
+	if err := InitProject(target, ProjectOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	err := filepath.WalkDir(target, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" {
+			return nil
+		}
+
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		formatted, err := format.Source(source)
+		if err != nil {
+			t.Errorf("format %s: %v", path, err)
+			return nil
+		}
+		if !bytes.Equal(source, formatted) {
+			relative, err := filepath.Rel(target, path)
+			if err != nil {
+				return err
+			}
+			t.Errorf("%s is not gofmt stable:\n--- rendered\n%s\n--- formatted\n%s", relative, source, formatted)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestInitProjectDefaultGoModOmitsReplace(t *testing.T) {
