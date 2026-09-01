@@ -37,3 +37,16 @@ func TestPing(t *testing.T) {
 		})
 	})
 }
+
+func TestApplyDefaults(t *testing.T) {
+	Convey("Redis 零值配置获得稳定默认值", t, func() {
+		cfg := Config{}
+
+		applyDefaults(&cfg)
+
+		So(cfg.PoolSize, ShouldEqual, 10)
+		So(cfg.DialTimeout, ShouldEqual, 5*time.Second)
+		So(cfg.ReadTimeout, ShouldEqual, 3*time.Second)
+		So(cfg.WriteTimeout, ShouldEqual, 3*time.Second)
+	})
+}

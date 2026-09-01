@@ -29,18 +29,7 @@ func NewClient(ctx context.Context, cfg Config) (*redis.Client, error) {
 	if cfg.Addr == "" {
 		return nil, ErrEmptyAddr
 	}
-	if cfg.DialTimeout <= 0 {
-		cfg.DialTimeout = 5 * time.Second
-	}
-	if cfg.ReadTimeout <= 0 {
-		cfg.ReadTimeout = 3 * time.Second
-	}
-	if cfg.WriteTimeout <= 0 {
-		cfg.WriteTimeout = 3 * time.Second
-	}
-	if cfg.PoolSize <= 0 {
-		cfg.PoolSize = 10
-	}
+	applyDefaults(&cfg)
 
 	client := redis.NewClient(&redis.Options{
 		Addr:         cfg.Addr,
@@ -57,6 +46,21 @@ func NewClient(ctx context.Context, cfg Config) (*redis.Client, error) {
 		return nil, fmt.Errorf("hredis: ping failed: %w", err)
 	}
 	return client, nil
+}
+
+func applyDefaults(cfg *Config) {
+	if cfg.DialTimeout <= 0 {
+		cfg.DialTimeout = 5 * time.Second
+	}
+	if cfg.ReadTimeout <= 0 {
+		cfg.ReadTimeout = 3 * time.Second
+	}
+	if cfg.WriteTimeout <= 0 {
+		cfg.WriteTimeout = 3 * time.Second
+	}
+	if cfg.PoolSize <= 0 {
+		cfg.PoolSize = 10
+	}
 }
 
 // Ping 探活,返回非 nil error 表示连接不可用
