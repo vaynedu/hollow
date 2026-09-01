@@ -60,6 +60,21 @@ func TestCondition_ToSQL(t *testing.T) {
 			So(args, ShouldResemble, []interface{}{"val1", "val2"})
 		})
 
+		Convey("逻辑节点 Operator 非 AND/OR 返回 ErrUnsupportedOperator", func() {
+			cond := Condition{
+				Operator: OpEq, // 错填,逻辑节点只接受 OpAnd/OpOr
+				Conditions: []Condition{
+					{Operator: OpEq, LHS: "col1", RHS: "val1"},
+					{Operator: OpEq, LHS: "col2", RHS: "val2"},
+				},
+			}
+			sql, args, err := cond.ToSQL()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "unsupported operator")
+			So(sql, ShouldBeEmpty)
+			So(args, ShouldBeNil)
+		})
+
 		Convey("未支持的操作符返回 ErrUnsupportedOperator", func() {
 			cond := Condition{Operator: Op("INVALID"), LHS: "column", RHS: "value"}
 			_, _, err := cond.ToSQL()

@@ -36,11 +36,10 @@ func (c *Condition) ToSQL() (string, []interface{}, error) {
 		args = append(args, subArgs...)
 	}
 
-	op := OpAnd
-	if c.Operator == OpOr {
-		op = OpOr
+	if c.Operator != OpAnd && c.Operator != OpOr {
+		return "", nil, fmt.Errorf("%w: %s", ErrUnsupportedOperator, c.Operator)
 	}
-	return fmt.Sprintf("(%s)", strings.Join(clauses, " "+string(op)+" ")), args, nil
+	return fmt.Sprintf("(%s)", strings.Join(clauses, " "+string(c.Operator)+" ")), args, nil
 }
 
 func (c *Condition) toAtomicSQL() (string, []interface{}, error) {
