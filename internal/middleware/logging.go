@@ -1,47 +1,30 @@
 package middleware
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"time"
 )
 
-// LoggingMiddleware 实现Middleware接口的日志中间件
-type LoggingMiddleware struct {
-	logger *zap.Logger
-}
+// NewLoggingMiddleware 记录 HTTP 请求的基本信息。
+func NewLoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
 
-// NewLoggingMiddleware 创建LoggingMiddleware实例
-func NewLoggingMiddleware(logger *zap.Logger) *LoggingMiddleware {
-	return &LoggingMiddleware{
-		logger: logger,
+		c.Next()
+
+		requestID, _ := c.Get(RequestIDKey)
+		logger.Info("HTTP Request",
+			zap.String("request_id", requestIDString(requestID)),
+			zap.String("method", c.Request.Method),
+			zap.String("path", path),
+			zap.String("query", query),
+			zap.Int("status", c.Writer.Status()),
+			zap.Duration("cost", time.Since(start)),
+			zap.String("client_ip", c.ClientIP()),
+		)
 	}
-}
-
-// HandlerFunc 返回中间件处理函数
-func (m *LoggingMiddleware) HandlerFunc() gin.HandlerFunc {
-	return m.loggingMiddleware
-}
-
-// Identifier 返回中间件唯一标识
-func (m *LoggingMiddleware) Identifier() string {
-	return "logging"
-}
-
-func (m *LoggingMiddleware) loggingMiddleware(c *gin.Context) {
-	start := time.Now()
-	path := c.Request.URL.Path
-	query := c.Request.URL.RawQuery
-
-	c.Next()
-
-	cost := time.Since(start)
-	m.logger.Info("HTTP Request",
-		zap.String("method", c.Request.Method),
-		zap.String("path", path),
-		zap.String("query", query),
-		zap.Int("status", c.Writer.Status()),
-		zap.Duration("cost", cost),
-		zap.String("client_ip", c.ClientIP()),
-	)
 }

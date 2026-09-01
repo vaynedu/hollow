@@ -1,121 +1,118 @@
 package middleware
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/vaynedu/hollow/pkg/hecode"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
-func TestMiddlewareInterface(t *testing.T) {
-	Convey("Middleware 接口实现遍历", t, func() {
-		gin.SetMode(gin.TestMode)
-		logger := zap.NewNop()
-
-		cases := []struct {
-			name       string
-			middleware Middleware
-			identifier string
-		}{
-			{"request_id middleware", NewRequestIDMiddleware(), "request_id"},
-			{"logging middleware", NewLoggingMiddleware(logger), "logging"},
-			{"recovery middleware", NewRecoveryMiddleware(), "recovery"},
-			{"response middleware", NewResponseMiddleware(), "response"},
-		}
-
-		for _, c := range cases {
-			So(c.middleware.Identifier(), ShouldEqual, c.identifier)
-			So(c.middleware.HandlerFunc(), ShouldNotBeNil)
-		}
-	})
+type responseEnvelope struct {
+	Code      int             `json:"code"`
+	Msg       string          `json:"msg"`
+	RequestID string          `json:"request_id"`
+	Data      json.RawMessage `json:"data"`
 }
 
-func TestRequestIDMiddleware(t *testing.T) {
-	Convey("RequestIDMiddleware 在响应中带 X-Request-ID", t, func() {
-		gin.SetMode(gin.TestMode)
-		router := gin.New()
-		router.Use(NewRequestIDMiddleware().HandlerFunc())
-		router.GET("/test", func(c *gin.Context) {
-			c.String(200, "OK")
-		})
-
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/test", nil)
-		router.ServeHTTP(w, req)
-
-		So(w.Code, ShouldEqual, 200)
-		So(w.Header().Get("X-Request-ID"), ShouldNotBeEmpty)
+func TestRequestIDMiddlewarePropagatesOneID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(NewRequestIDMiddleware())
+	router.GET("/", func(c *gin.Context) {
+		ginID, _ := c.Get(RequestIDKey)
+		ctxID := c.Request.Context().Value(requestIDContextKey{})
+		c.String(http.StatusOK, "%v/%v", ginID, ctxID)
 	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Request-ID", "incoming-id")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Header().Get("X-Request-ID") != "incoming-id" || rec.Body.String() != "incoming-id/incoming-id" {
+		t.Fatalf("header=%q body=%q", rec.Header().Get("X-Request-ID"), rec.Body.String())
+	}
 }
 
-func TestLoggingMiddleware(t *testing.T) {
-	Convey("LoggingMiddleware 正常透传 200", t, func() {
-		gin.SetMode(gin.TestMode)
-		logger := zap.NewNop()
+func TestDefaultMiddlewarePipeline(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	core, logs := observer.New(zapcore.DebugLevel)
+	router := gin.New()
+	router.Use(RegisterDefaultMiddlewares(zap.New(core))...)
+	router.GET("/success", func(c *gin.Context) { c.Set("data", gin.H{"ok": true}) })
+	router.GET("/forbidden", func(c *gin.Context) { _ = c.Error(hecode.ErrForbidden) })
+	router.GET("/plain", func(c *gin.Context) { _ = c.Error(errors.New("secret")) })
+	router.GET("/panic", func(c *gin.Context) { panic("secret panic") })
 
-		router := gin.New()
-		router.Use(NewLoggingMiddleware(logger).HandlerFunc())
-		router.GET("/test", func(c *gin.Context) {
-			c.String(200, "OK")
-		})
+	success := assertEnvelope(t, router, "/success", http.StatusOK, 0, "success")
+	assertJSONData(t, success.Data, map[string]any{"ok": true})
+	assertEnvelope(t, router, "/forbidden", http.StatusForbidden, 1203, "forbidden access")
+	plain := assertEnvelope(t, router, "/plain", http.StatusInternalServerError, 1001, "internal server error")
+	panicResponse := assertEnvelope(t, router, "/panic", http.StatusInternalServerError, 1001, "internal server error")
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/test", nil)
-		router.ServeHTTP(w, req)
-
-		So(w.Code, ShouldEqual, 200)
-	})
+	if strings.Contains(string(plain.Data), "secret") || strings.Contains(string(panicResponse.Data), "secret") {
+		t.Fatal("internal error details leaked in response data")
+	}
+	assertInternalErrorsLogged(t, logs.All())
 }
 
-func TestRecoveryMiddleware(t *testing.T) {
-	Convey("RecoveryMiddleware 捕获 panic 返回 500", t, func() {
-		gin.SetMode(gin.TestMode)
+func assertEnvelope(t *testing.T, router http.Handler, path string, status, code int, msg string) responseEnvelope {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, path, nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
 
-		router := gin.New()
-		router.Use(NewRecoveryMiddleware().HandlerFunc())
-		router.GET("/panic", func(c *gin.Context) {
-			panic("test panic")
-		})
+	if rec.Code != status {
+		t.Fatalf("path=%s status=%d body=%s", path, rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "secret") {
+		t.Fatalf("path=%s leaked internal details: %s", path, rec.Body.String())
+	}
 
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/panic", nil)
-		router.ServeHTTP(w, req)
-
-		So(w.Code, ShouldEqual, 500)
-	})
+	var envelope responseEnvelope
+	if err := json.Unmarshal(rec.Body.Bytes(), &envelope); err != nil {
+		t.Fatalf("path=%s decode response: %v; body=%s", path, err, rec.Body.String())
+	}
+	if envelope.Code != code || envelope.Msg != msg {
+		t.Fatalf("path=%s envelope=%+v", path, envelope)
+	}
+	if envelope.RequestID == "" || rec.Header().Get("X-Request-ID") != envelope.RequestID {
+		t.Fatalf("path=%s header=%q request_id=%q", path, rec.Header().Get("X-Request-ID"), envelope.RequestID)
+	}
+	return envelope
 }
 
-func TestResponseMiddleware(t *testing.T) {
-	Convey("ResponseMiddleware 包装响应输出", t, func() {
-		gin.SetMode(gin.TestMode)
-
-		router := gin.New()
-		router.Use(NewResponseMiddleware().HandlerFunc())
-		router.GET("/success", func(c *gin.Context) {
-			c.Set("data", gin.H{"message": "success"})
-		})
-
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/success", nil)
-		router.ServeHTTP(w, req)
-
-		So(w.Code, ShouldEqual, 200)
-		So(w.Body.String(), ShouldContainSubstring, "success")
-	})
+func assertJSONData(t *testing.T, raw json.RawMessage, want map[string]any) {
+	t.Helper()
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("decode response data: %v", err)
+	}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("data=%v want=%v", got, want)
+	}
 }
 
-func TestRegisterDefaultMiddlewares(t *testing.T) {
-	Convey("RegisterDefaultMiddlewares 返回 4 个默认中间件并顺序固定", t, func() {
-		logger := zap.NewNop()
-		middlewares := RegisterDefaultMiddlewares(logger)
-
-		So(len(middlewares), ShouldEqual, 4)
-		So(middlewares[0].Identifier(), ShouldEqual, "request_id")
-		So(middlewares[1].Identifier(), ShouldEqual, "logging")
-		So(middlewares[2].Identifier(), ShouldEqual, "recovery")
-		So(middlewares[3].Identifier(), ShouldEqual, "response")
-	})
+func assertInternalErrorsLogged(t *testing.T, entries []observer.LoggedEntry) {
+	t.Helper()
+	var plainLogged, panicLogged, stackLogged bool
+	for _, entry := range entries {
+		fields := entry.ContextMap()
+		errorText := fmt.Sprint(fields["error"])
+		plainLogged = plainLogged || errorText == "secret"
+		panicLogged = panicLogged || errorText == "secret panic"
+		stackLogged = stackLogged || fmt.Sprint(fields["stack"]) != "<nil>"
+	}
+	if !plainLogged || !panicLogged || !stackLogged {
+		t.Fatalf("plain_logged=%v panic_logged=%v stack_logged=%v entries=%v", plainLogged, panicLogged, stackLogged, entries)
+	}
 }

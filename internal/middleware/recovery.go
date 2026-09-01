@@ -1,58 +1,37 @@
 package middleware
 
 import (
-	"net/http"
 	"runtime"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vaynedu/hollow/internal/logger"
+	"github.com/vaynedu/hollow/pkg/hecode"
 	"go.uber.org/zap"
 )
 
-// RecoveryMiddleware 实现Middleware接口的恢复中间件
-type RecoveryMiddleware struct {
-	logger *zap.Logger
-}
-
-// NewRecoveryMiddleware 创建RecoveryMiddleware实例
-func NewRecoveryMiddleware() *RecoveryMiddleware {
-	return &RecoveryMiddleware{
-		logger: logger.GetLogger(),
-	}
-}
-
-// HandlerFunc 返回中间件处理函数
-func (m *RecoveryMiddleware) HandlerFunc() gin.HandlerFunc {
+// NewRecoveryMiddleware 捕获 panic 并交给统一响应中间件处理。
+func NewRecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				// 打印错误堆栈
-				stack := stack(3)
-				m.logger.Error("panic recovered",
+				requestID, _ := c.Get(RequestIDKey)
+				logger.Error("panic recovered",
 					zap.Any("error", err),
-					zap.String("stack", string(stack)),
+					zap.String("stack", string(stack())),
+					zap.String("request_id", requestIDString(requestID)),
 					zap.String("path", c.Request.URL.Path),
 					zap.String("method", c.Request.Method),
 				)
 
-				// 返回500响应
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"code":    500,
-					"message": "Internal Server Error",
-				})
+				_ = c.Error(hecode.ErrInternal)
+				c.Abort()
 			}
 		}()
 		c.Next()
 	}
 }
 
-// Identifier 返回中间件唯一标识
-func (m *RecoveryMiddleware) Identifier() string {
-	return "recovery"
-}
-
-// stack returns a formatted stack trace of the goroutine that calls it.
-func stack(skip int) []byte {
+// stack 返回当前 goroutine 的堆栈信息。
+func stack() []byte {
 	buf := make([]byte, 1024)
 	for {
 		n := runtime.Stack(buf, false)
