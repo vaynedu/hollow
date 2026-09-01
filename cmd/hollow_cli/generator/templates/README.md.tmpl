@@ -2,6 +2,27 @@
 
 基于 [Hollow](https://github.com/vaynedu/hollow) 的 Go Web 项目。
 
+## 环境与创建方式
+
+要求 Go 1.25+，并安装代码生成插件：
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+(cd /path/to/protoc-gen-myhttp && go install .)
+```
+
+`protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
+
+当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`。未发布阶段创建项目时必须使用：
+
+```bash
+hollow-cli init {{.ProjectName}} --hollow-path /path/to/hollow
+```
+
+只有发布了同时包含上述 API 的兼容 `v1.0.0` 后，才能省略 `--hollow-path`；不要移动或覆盖现有 `v1.0.0` 标签。
+
+## 开发
+
 ```bash
 make proto
 make deps

@@ -293,6 +293,25 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 	}
 }
 
+func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "lifelog-server")
+	if err := InitProject(target, ProjectOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	readme := readProjectFile(t, target, "README.md")
+	assertContainsAll(t, "README.md", readme,
+		"Go 1.25+",
+		"go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11",
+		"(cd /path/to/protoc-gen-myhttp && go install .)",
+		"hollow-cli init lifelog-server --hollow-path /path/to/hollow",
+		"Startup/Shutdown/Run",
+		"pkg/hecode",
+		"兼容 `v1.0.0`",
+		"才能省略 `--hollow-path`",
+	)
+}
+
 func assertExactTree(t *testing.T, root string, want []string) {
 	t.Helper()
 	var got []string

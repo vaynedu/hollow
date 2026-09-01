@@ -1,6 +1,26 @@
 # hollow 轻量级web框架
 
 基于go-gin框架封装轻量级的web框架，提供了开箱即用的功能，主要是提升编码能力和沉淀go成熟的库
+
+# 快速开始（当前未发布阶段）
+
+环境要求：Go 1.25+、Protocol Buffers 编译器，以及以下代码生成插件：
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+(cd /path/to/protoc-gen-myhttp && go install .)
+```
+
+`protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
+
+当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`，本地开发必须显式指定当前 Hollow 源码：
+
+```bash
+hollow-cli init <project> --hollow-path /path/to/hollow
+```
+
+只有发布了同时包含上述 API 的兼容 `v1.0.0` 后，才能使用 `hollow-cli init <project>` 省略 `--hollow-path`。不要移动或覆盖现有 `v1.0.0` 标签。
+
 # 项目结构
 
 ```
