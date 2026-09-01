@@ -18,7 +18,8 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 2. 创建：`hollow-cli init myapp && cd myapp`
 3. 定义：创建 `proto/user.proto` 定义服务和方法
 4. 生成：`make proto` 生成代码
-5. 运行：`make run` 启动服务
+5. 依赖：`make deps` 整理 Go module 依赖
+6. 运行：`make run` 启动服务
 
 ## 应用生命周期
 
@@ -30,18 +31,15 @@ if err != nil {
 
 app.Startup(initDependencies)
 app.Shutdown(closeDependencies)
-router.RegisterRoutes(app)
+router.Register(app)
 return app.Run()
 ```
 
 - `Startup(...)`：注册应用启动 Hook，按注册顺序执行。
 - `Shutdown(...)`：注册应用关闭 Hook，按注册的逆序执行。
-- `router.RegisterRoutes(app)`：在 HTTP Server 启动前完成路由注册。
+- `router.Register(app)`：在 HTTP Server 启动前完成生成路由注册。
 - `Run()`：启动 HTTP Server，并在收到退出信号后完成优雅关闭。
 
 ## 示例 API
 - `POST /v1/users`：创建用户
-- `GET /v1/users`：查询列表
-- `GET /v1/users/{id}`：获取详情
-- `PUT /v1/users/{id}`：更新用户
-- `DELETE /v1/users/{id}`：删除用户
+- `GET /v1/users?id=...`：获取用户

@@ -7,15 +7,14 @@ package proto
 import (
 	"context"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
+	"github.com/vaynedu/hollow/pkg/hecode"
 )
 
 type UserServiceService interface {
 	CreateUser(ctx context.Context, req *CreateUserRequest) (resp *CreateUserResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest) (resp *GetUserResponse, err error)
-	QueryUsers(ctx context.Context, req *QueryUsersRequest) (resp *QueryUsersResponse, err error)
-	UpdateUser(ctx context.Context, req *UpdateUserRequest) (resp *UpdateUserResponse, err error)
-	DeleteUser(ctx context.Context, req *DeleteUserRequest) (resp *DeleteUserResponse, err error)
 }
 
 type UserService struct {
@@ -29,80 +28,40 @@ func RegisterUserServiceGinRouter(router *gin.Engine, svc UserServiceService) {
 
 	router.POST("/v1/users", s.CreateUser)
 
-	router.GET("/v1/users/{id}", s.GetUser)
-
-	router.GET("/v1/users", s.QueryUsers)
+	router.GET("/v1/users", s.GetUser)
 
 }
 
 func (s *UserService) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.Error(fmt.Errorf("%w: bind request: %v", hecode.ErrInvalidParam, err))
 		return
 	}
+
 	resp, err := s.svc.CreateUser(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.Error(err)
 		return
 	}
-	c.JSON(200, resp)
+	c.Set("data", resp)
 }
 
 func (s *UserService) GetUser(c *gin.Context) {
 	var req GetUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.Error(fmt.Errorf("%w: bind request: %v", hecode.ErrInvalidParam, err))
 		return
 	}
+
 	resp, err := s.svc.GetUser(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.Error(err)
 		return
 	}
-	c.JSON(200, resp)
-}
-
-func (s *UserService) QueryUsers(c *gin.Context) {
-	var req QueryUsersRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	resp, err := s.svc.QueryUsers(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, resp)
-}
-
-func (s *UserService) UpdateUser(c *gin.Context) {
-	var req UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	resp, err := s.svc.UpdateUser(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, resp)
-}
-
-func (s *UserService) DeleteUser(c *gin.Context) {
-	var req DeleteUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	resp, err := s.svc.DeleteUser(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, resp)
+	c.Set("data", resp)
 }
 
 // 新增未实现的服务结构体
@@ -116,16 +75,4 @@ func (u *UnimplementedUserServiceService) CreateUser(ctx context.Context, req *C
 
 func (u *UnimplementedUserServiceService) GetUser(ctx context.Context, req *GetUserRequest) (resp *GetUserResponse, err error) {
 	return nil, fmt.Errorf("UserServiceService.GetUser 方法未实现")
-}
-
-func (u *UnimplementedUserServiceService) QueryUsers(ctx context.Context, req *QueryUsersRequest) (resp *QueryUsersResponse, err error) {
-	return nil, fmt.Errorf("UserServiceService.QueryUsers 方法未实现")
-}
-
-func (u *UnimplementedUserServiceService) UpdateUser(ctx context.Context, req *UpdateUserRequest) (resp *UpdateUserResponse, err error) {
-	return nil, fmt.Errorf("UserServiceService.UpdateUser 方法未实现")
-}
-
-func (u *UnimplementedUserServiceService) DeleteUser(ctx context.Context, req *DeleteUserRequest) (resp *DeleteUserResponse, err error) {
-	return nil, fmt.Errorf("UserServiceService.DeleteUser 方法未实现")
 }

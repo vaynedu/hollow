@@ -54,7 +54,7 @@ func newProjectConfig(projectPath string, options ProjectOptions) (ProjectConfig
 		ServiceName:   serviceName,
 		ProtoName:     protoName,
 		ProtoPackage:  protoName,
-		GoVersion:     "1.23.4",
+		GoVersion:     "1.25.0",
 		HollowVersion: hollowVersion,
 		HollowPath:    options.HollowPath,
 	}, nil

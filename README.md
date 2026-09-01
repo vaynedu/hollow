@@ -40,14 +40,25 @@ hollow/
 │       └── once.go               # sync.Once封装
 ├── hollow.go                     # 框架入口
 └── example/                      # 使用示例
-    ├── api/                      # 业务API
-    │   ├── user/                 # 用户服务
-    │   │   ├── user.proto        # Protobuf定义
-    │   │   ├── user.pb.go        # 自动生成代码
-    │   │   └── handler.go        # 业务逻辑
-    │   └── config.yaml           # 配置文件示例
+    ├── config/config.go          # 业务生命周期 Hook
+    ├── proto/                    # Protobuf 定义和生成代码
+    ├── router/router.go          # 生成路由注册
+    ├── service/service.go        # Service 实现骨架
+    ├── Makefile                  # 代码生成与依赖整理
+    ├── conf.yaml                 # 配置文件示例
     └── main.go                   # 服务启动入口
 ```
+
+生成并验证示例：
+
+```bash
+make -C example proto
+make -C example deps
+(cd example && go test ./... && go build ./...)
+```
+
+`make proto` 只生成 `*.pb.go` 和 `*_myhttp.pb.go`；`make deps` 显式整理 Go module 依赖。
+
 # 核心功能
 ## 1. 框架核心 (hollow.go)
 - App 结构体 ：框架的核心，管理整个应用生命周期
@@ -63,7 +74,7 @@ if err != nil {
 
 app.Startup(initDependencies)
 app.Shutdown(closeDependencies)
-router.RegisterRoutes(app)
+router.Register(app)
 return app.Run()
 ```
 

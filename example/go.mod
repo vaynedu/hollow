@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/vaynedu/hollow v0.1.0
+	github.com/vaynedu/hollow v1.0.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7
 	google.golang.org/protobuf v1.36.11
 )

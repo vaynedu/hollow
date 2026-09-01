@@ -2,11 +2,11 @@ package router
 
 import (
 	"github.com/vaynedu/hollow"
+	"github.com/vaynedu/hollow/example/proto"
+	"github.com/vaynedu/hollow/example/service"
 )
 
-// RegisterRoutes 注册所有路由
-// 在 main.go 中调用此函数注册路由
-func RegisterRoutes(app *hollow.App) {
-	// 注册 UserService 服务路由
-	RegisterUserServiceRoutes(app.Engine)
+// Register 注册示例项目的 HTTP 路由。
+func Register(app *hollow.App) {
+	proto.RegisterUserServiceGinRouter(app.Engine, service.Get())
 }

@@ -1,4 +1,4 @@
-.PHONY: build run test clean proto
+.PHONY: build run test clean proto deps
 
 PROTO_INCLUDE ?= /usr/local/include
 
@@ -19,3 +19,6 @@ proto:
 		-I . -I $(PROTO_INCLUDE) \
 		--go_out=. --go_opt=paths=source_relative \
 		--myhttp_out=. --myhttp_opt=paths=source_relative
+
+deps:
+	go mod tidy

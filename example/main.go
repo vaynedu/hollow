@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/vaynedu/hollow"
+	"github.com/vaynedu/hollow/example/config"
 	"github.com/vaynedu/hollow/example/router"
 )
 
@@ -16,7 +17,9 @@ func run() error {
 		return err
 	}
 
-	router.RegisterRoutes(app)
+	app.Startup(config.Startup)
+	app.Shutdown(config.Shutdown)
+	router.Register(app)
 	return app.Run()
 }
 

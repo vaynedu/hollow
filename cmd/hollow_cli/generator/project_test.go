@@ -279,10 +279,10 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		"-I . -I $(PROTO_INCLUDE) \\",
 		"--go_out=. --go_opt=paths=source_relative \\",
 		"--myhttp_out=. --myhttp_opt=paths=source_relative",
+		"deps:\n\tgo mod tidy",
 	)
 	for _, forbidden := range []string{
 		"hollow-cli",
-		"go mod tidy",
 		"openapi",
 		"grpc-gateway@",
 		"$(shell go env GOPATH)",
