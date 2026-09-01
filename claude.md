@@ -11,7 +11,7 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供代码生�
 ## 主要功能
 - **项目初始化**：`hollow-cli init project_name` 自动创建完整结构
 - **代码生成**：`hollow-cli proto proto/service.proto` 生成 Handler、Service、Router
-- **标准响应**：统一 API 响应格式 `{code, msg, data}`
+- **标准响应**：统一 API 响应格式 `{code, msg, request_id, data}`
 - **中间件**：响应格式化、异常恢复、请求日志
 
 ## 快速开始

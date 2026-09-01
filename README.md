@@ -49,7 +49,7 @@ hollow/
 # 核心功能
 ## 1. 框架核心 (hollow.go)
 - App 结构体 ：框架的核心，管理整个应用生命周期
-- 中间件管理 ：支持动态添加/移除中间件，自动去重
+- 中间件管理 ：通过 `app.Use(...gin.HandlerFunc)` 注册 Gin 原生中间件
 - 优雅启停 ：通过信号处理实现优雅关闭
 - 依赖注入 ：支持用户自定义配置和中间件
 
@@ -77,9 +77,7 @@ return app.Run()
 - 自动日志轮转
 - 支持 Debug/Info/Warn/Error 多级别
 ## 4. 中间件系统 (middleware/)
-采用接口化设计，每个中间件实现 Middleware 接口：
-- Handle ：处理请求，返回响应
-- Name ：中间件名称，用于日志记录
+采用 Gin 原生中间件模型；框架内置中间件和业务自定义中间件均为 `gin.HandlerFunc`，可通过 `app.Use(...)` 注册：
 
 - RequestID ：请求追踪 ID 生成
 - Logging ：请求日志记录（方法、路径、耗时、状态码等）
