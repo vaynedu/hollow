@@ -3,7 +3,7 @@ package hcond
 import "fmt"
 
 func ExampleCondition_ToSQL() {
-	cond := Condition{
+	cond := &Condition{
 		Operator: OpAnd,
 		Conditions: []Condition{
 			{Operator: OpEq, LHS: "status", RHS: "active"},

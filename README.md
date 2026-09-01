@@ -90,9 +90,8 @@ hollow/
 - 时间格式化
 - 常用时间格式常量 hredlock - 分布式锁
 - 基于 Redis 的分布式锁实现
-- 适用于秒杀等高并发场景 hexcel - Excel 处理
-- Excel 读取和解析
-- Excel 转 SQL 工具 hes - Elasticsearch 客户端
+- 适用于秒杀等高并发场景 hcsv - CSV 文件读取
+- 一次性加载 CSV 到内存,适合配置/小数据 hes - Elasticsearch 客户端
 - ES 连接和操作封装
 
 # 技术栈
