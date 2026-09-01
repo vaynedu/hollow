@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 )
 
@@ -13,12 +15,14 @@ type LogConfig struct {
 	MaxAge      int    `mapstructure:"max_age"`
 }
 
+type ServerConfig struct {
+	Host            string        `mapstructure:"host"`
+	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
+}
+
 type Config struct {
-	*viper.Viper
-	Host  string      `mapstructure:"host"`
-	Log   LogConfig   `mapstructure:"log"`
-	Db    DbConfig    `mapstructure:"db"`
-	Redis RedisConfig `mapstructure:"redis"`
+	Server ServerConfig `mapstructure:"server"`
+	Log    LogConfig    `mapstructure:"log"`
 }
 
 func NewConfig(path string, configFileName string) (*Config, error) {
@@ -38,18 +42,6 @@ func NewConfig(path string, configFileName string) (*Config, error) {
 	if err := v.Unmarshal(&config); err != nil {
 		return nil, err
 	}
-	config.Viper = v // 假设 Config 结构体有 Viper 字段，添加赋值操作
 
 	return &config, nil
 }
-
-// 示例配置文件（example/conf.yaml）
-//# server:
-//#   http:
-//#     addr: ":8080"
-//# log:
-//#   level: "debug"
-//#   output_mode: "console"
-//#   file: "app.log"
-//#   max_size: 100
-//#   max_age: 30
