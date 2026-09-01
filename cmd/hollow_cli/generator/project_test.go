@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -68,6 +69,46 @@ func TestInitProjectRejectsExistingTarget(t *testing.T) {
 	err := InitProject(target, ProjectOptions{})
 	if err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestInitProjectCleansTemporaryDirectoryOnRenderFailure(t *testing.T) {
+	parent := t.TempDir()
+	target := filepath.Join(parent, "lifelog-server")
+	keep := filepath.Join(parent, ".lifelog-server-keep")
+	if err := os.Mkdir(keep, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	renderErr := errors.New("render failed")
+	calls := 0
+	originalWriter := projectTemplateWriter
+	projectTemplateWriter = func(path, templateName string, config ProjectConfig) error {
+		calls++
+		if calls == 2 {
+			return renderErr
+		}
+		return writeTemplate(path, templateName, config)
+	}
+	t.Cleanup(func() { projectTemplateWriter = originalWriter })
+
+	err := InitProject(target, ProjectOptions{})
+	if !errors.Is(err, renderErr) {
+		t.Fatalf("error=%v, want %v", err, renderErr)
+	}
+	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("target stat error=%v, want not exist", err)
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatalf("unrelated directory removed: %v", err)
+	}
+
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != filepath.Base(keep) {
+		t.Fatalf("parent entries=%v, want only %q", entries, filepath.Base(keep))
 	}
 }
 
@@ -164,12 +205,19 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 
 	makefile := readProjectFile(t, target, "Makefile")
 	assertContainsAll(t, "Makefile", makefile,
+		"PROTO_INCLUDE ?= /usr/local/include",
 		"protoc proto/*.proto \\",
 		"-I . -I $(PROTO_INCLUDE) \\",
 		"--go_out=. --go_opt=paths=source_relative \\",
 		"--myhttp_out=. --myhttp_opt=paths=source_relative",
 	)
-	for _, forbidden := range []string{"hollow-cli", "go mod tidy", "openapi"} {
+	for _, forbidden := range []string{
+		"hollow-cli",
+		"go mod tidy",
+		"openapi",
+		"grpc-gateway@",
+		"$(shell go env GOPATH)",
+	} {
 		if strings.Contains(makefile, forbidden) {
 			t.Fatalf("Makefile contains forbidden %q:\n%s", forbidden, makefile)
 		}

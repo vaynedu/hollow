@@ -10,6 +10,8 @@ import (
 
 const DefaultHollowVersion = "v1.0.0"
 
+var projectTemplateWriter = writeTemplate
+
 type ProjectOptions struct {
 	Module        string
 	Service       string
@@ -84,26 +86,52 @@ func projectNameParts(projectName string) []string {
 
 // InitProject 在一个全新的目标目录中生成固定项目骨架。
 func InitProject(projectPath string, options ProjectOptions) error {
+	return initProject(projectPath, options, projectTemplateWriter)
+}
+
+func initProject(
+	projectPath string,
+	options ProjectOptions,
+	write func(string, string, ProjectConfig) error,
+) error {
 	config, err := newProjectConfig(projectPath, options)
 	if err != nil {
 		return err
 	}
 
-	if err := os.Mkdir(projectPath, 0755); err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("target %q already exists", projectPath)
-		}
-		return fmt.Errorf("create target %q: %w", projectPath, err)
+	if _, err := os.Lstat(projectPath); err == nil {
+		return fmt.Errorf("target %q already exists", projectPath)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("check target %q: %w", projectPath, err)
 	}
 
+	temporaryPath, err := os.MkdirTemp(
+		filepath.Dir(projectPath),
+		"."+filepath.Base(projectPath)+"-",
+	)
+	if err != nil {
+		return fmt.Errorf("create temporary project for %q: %w", projectPath, err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.RemoveAll(temporaryPath)
+		}
+	}()
+
 	for _, file := range projectFiles(config) {
-		target := filepath.Join(projectPath, file.path)
+		target := filepath.Join(temporaryPath, file.path)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 			return fmt.Errorf("create directory for %q: %w", target, err)
 		}
-		if err := writeTemplate(target, file.template, config); err != nil {
+		if err := write(target, file.template, config); err != nil {
 			return err
 		}
 	}
+
+	if err := os.Rename(temporaryPath, projectPath); err != nil {
+		return fmt.Errorf("publish project %q: %w", projectPath, err)
+	}
+	committed = true
 	return nil
 }

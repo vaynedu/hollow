@@ -1,6 +1,6 @@
 .PHONY: build run test clean proto
 
-PROTO_INCLUDE ?= $(shell go env GOPATH)/pkg/mod/github.com/grpc-ecosystem/grpc-gateway@v1.16.0/third_party/googleapis
+PROTO_INCLUDE ?= /usr/local/include
 
 build:
 	go build -o bin/{{.ProjectName}} .
