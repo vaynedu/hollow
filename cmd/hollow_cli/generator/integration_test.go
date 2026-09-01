@@ -85,10 +85,14 @@ func assertGeneratedHealthEndpoint(t *testing.T, target string) {
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
 	}
+	done := make(chan error, 1)
+	go func() { done <- command.Wait() }()
+	waited := false
 	defer func() {
+		if waited {
+			return
+		}
 		_ = command.Process.Signal(os.Interrupt)
-		done := make(chan error, 1)
-		go func() { done <- command.Wait() }()
 		select {
 		case <-done:
 		case <-time.After(3 * time.Second):
@@ -99,15 +103,20 @@ func assertGeneratedHealthEndpoint(t *testing.T, target string) {
 
 	client := &http.Client{Timeout: time.Second}
 	var response *http.Response
-	for range 50 {
+	deadline := time.After(10 * time.Second)
+	for response == nil {
 		response, err = client.Get("http://" + address + "/v1/health")
 		if err == nil {
 			break
 		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	if err != nil {
-		t.Fatalf("request generated health endpoint: %v\n%s", err, output.String())
+		select {
+		case processErr := <-done:
+			waited = true
+			t.Fatalf("generated server exited before health check: %v\n%s", processErr, output.String())
+		case <-deadline:
+			t.Fatalf("request generated health endpoint: %v\n%s", err, output.String())
+		case <-time.After(20 * time.Millisecond):
+		}
 	}
 	defer response.Body.Close()
 	var envelope struct {
