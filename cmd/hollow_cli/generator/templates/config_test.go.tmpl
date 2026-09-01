@@ -23,6 +23,19 @@ func TestLoad(t *testing.T) {
 			So(cfg.Database.Redis.Enabled, ShouldBeFalse)
 		})
 
+		Convey("读取 MySQL 和 Redis 配置", func() {
+			content := "database:\n" +
+				"  mysql:\n    enabled: true\n    dsn: mysql-dsn\n" +
+				"  redis:\n    enabled: true\n    addr: 127.0.0.1:6379\n"
+			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte(content), 0o600), ShouldBeNil)
+
+			cfg, err := load(dir, "conf")
+
+			So(err, ShouldBeNil)
+			So(cfg.Database.MySQL.DSN, ShouldEqual, "mysql-dsn")
+			So(cfg.Database.Redis.Addr, ShouldEqual, "127.0.0.1:6379")
+		})
+
 		Convey("启用 MySQL 时必须配置 DSN", func() {
 			content := "database:\n  mysql:\n    enabled: true\n"
 			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte(content), 0o600), ShouldBeNil)

@@ -444,12 +444,14 @@ func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
 		"make proto PROTO_INCLUDE=/absolute/path/to/googleapis",
 		"/absolute/path/to/googleapis/google/api/annotations.proto",
 		"hollow-cli init lifelog-server --hollow-path /path/to/hollow",
-		"Startup/Shutdown/Run",
-		"pkg/hecode",
-		"发布包含新 API 的新 Hollow 版本",
-		"`DefaultHollowVersion` 更新到该新版本",
+		"最新的生命周期、错误码、配置、日志和数据库 API",
+		"发布包含新 API 的 Hollow 版本",
+		"`DefaultHollowVersion` 更新后",
 		"才可省略 `--hollow-path`",
 		"现有 `v1.0.0` 标签不得移动或覆盖",
+		"hlog.FromContext(ctx)",
+		"MySQL 和 Redis 默认关闭",
+		"GoConvey",
 	)
 	for _, forbidden := range []string{"兼容 `v1.0.0`", "发布新的 `v1.0.0`"} {
 		if strings.Contains(readme, forbidden) {

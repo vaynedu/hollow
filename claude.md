@@ -12,6 +12,9 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 - **项目初始化**：当前使用 `hollow-cli init <project> --hollow-path /path/to/hollow` 创建完整结构
 - **标准响应**：统一 API 响应格式 `{code, msg, request_id, data}`
 - **中间件**：响应格式化、异常恢复、请求日志
+- **配置**：`pkg/hconfig` 启动时加载本地 YAML，并支持类型校验
+- **日志**：`pkg/hlog` 从 `context.Context` 获取自动携带 Request ID 的结构化 Logger
+- **数据库**：`pkg/hgorm` 和 `pkg/hredis` 提供 MySQL、Redis 薄封装
 
 ## 快速开始
 1. 安装 Protocol Buffers 编译器和代码生成插件：
@@ -51,6 +54,28 @@ return app.Run()
 - `Shutdown(...)`：注册应用关闭 Hook，按注册的逆序执行。
 - `router.Register(app)`：在 HTTP Server 启动前完成生成路由注册。
 - `Run()`：启动 HTTP Server，并在收到退出信号后完成优雅关闭。
+
+CLI 生成项目默认使用：
+
+```go
+app.Startup(
+	config.Startup,
+	database.InitMySQL,
+	database.InitRedis,
+)
+app.Shutdown(database.Shutdown)
+```
+
+MySQL、Redis 通过 `conf.yaml` 的 `enabled` 开关控制，默认关闭。配置只在进程启动时读取一次。
+
+业务日志直接从 Context 获取：
+
+```go
+logger := hlog.FromContext(ctx).Named("RestaurantService.List")
+logger.Info("restaurant list loaded", hlog.String("open_id", openID))
+```
+
+推荐依赖方向为 `control → service → dao → model`；`cache` 按业务场景添加，并且只能由 Service 使用。Service 不保存请求级可变状态。
 
 ## 示例 API
 - `POST /v1/users`：创建用户

@@ -15,13 +15,13 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.1
 `protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
 `google/api/annotations.proto` 来自 googleapis 仓库（也可使用已有安装）；`PROTO_INCLUDE` 必须指向 googleapis 根目录，且 `/absolute/path/to/googleapis/google/api/annotations.proto` 必须存在。
 
-当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`。未发布阶段创建项目时必须使用：
+当前发布的 `v1.0.0` 尚未包含最新的生命周期、错误码、配置、日志和数据库 API。未发布阶段创建项目时必须使用：
 
 ```bash
 hollow-cli init {{.ProjectName}} --hollow-path /path/to/hollow
 ```
 
-只有发布包含新 API 的新 Hollow 版本（即包含 `Startup/Shutdown/Run` 与 `pkg/hecode`），并将 CLI 的 `DefaultHollowVersion` 更新到该新版本后，才可省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
+只有发布包含新 API 的 Hollow 版本，并将 CLI 的 `DefaultHollowVersion` 更新后，才可省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
 
 ## 开发
 
@@ -33,11 +33,24 @@ proto/*_myhttp.pb.go（自动生成）
 → service（核心业务逻辑）
 → dao（数据访问）
 → model（数据库模型）
+
+service → cache（可选）
 ```
 
-`make proto` 只更新 `proto/*.pb.go` 和 `proto/*_myhttp.pb.go`。`control/`、`service/`、`dao/`、`model/` 是手写代码，不会被覆盖。
+`make proto` 只更新 `proto/*.pb.go` 和 `proto/*_myhttp.pb.go`。`control/`、`service/`、`dao/`、`model/` 是手写代码，不会被覆盖。`cache/` 仅在读多写少且允许短暂不一致时按需创建。
 
 新项目默认提供 `GET /v1/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
+
+配置仅在启动时从本地 `conf.yaml` 读取。MySQL 和 Redis 默认关闭；将对应 `enabled` 改为 `true` 并填写连接配置后，启动 Hook 会自动建立连接并在退出时关闭。
+
+请求 Logger 已自动携带 Request ID，可在 Control、Service、DAO 中直接使用：
+
+```go
+logger := hlog.FromContext(ctx).Named("RestaurantService.List").
+	With(hlog.String("open_id", openID))
+```
+
+生成的单元测试使用 GoConvey，可通过 `make test` 执行。
 
 ```bash
 make proto PROTO_INCLUDE=/absolute/path/to/googleapis

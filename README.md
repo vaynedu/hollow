@@ -15,7 +15,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.1
 `protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
 `google/api/annotations.proto` 来自 googleapis 仓库（也可使用已有安装）；`PROTO_INCLUDE` 必须指向 googleapis 根目录，且 `/absolute/path/to/googleapis/google/api/annotations.proto` 必须存在。
 
-当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`，本地开发必须显式指定当前 Hollow 源码：
+当前发布的 `v1.0.0` 尚未包含最新的生命周期、错误码、配置、日志和数据库 API，本地开发必须显式指定当前 Hollow 源码：
 
 ```bash
 hollow-cli init <project> --hollow-path /path/to/hollow
@@ -23,7 +23,7 @@ cd <project>
 make proto PROTO_INCLUDE=/absolute/path/to/googleapis
 ```
 
-只有发布包含新 API 的新 Hollow 版本（即包含 `Startup/Shutdown/Run` 与 `pkg/hecode`），并将 CLI 的 `DefaultHollowVersion` 更新到该新版本后，才可使用 `hollow-cli init <project>` 省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
+只有发布包含新 API 的 Hollow 版本，并将 CLI 的 `DefaultHollowVersion` 更新后，才可使用 `hollow-cli init <project>` 省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
 
 # 项目结构
 
@@ -37,34 +37,17 @@ hollow/
 │           ├── project.go        # 项目配置与目录生成
 │           ├── render.go         # 嵌入模板渲染
 │           └── templates/        # 项目骨架模板
-├── internal/                     # 框架核心实现（不对外暴露）
-│   ├── config/                   # 配置管理（本地+远程热加载）
-│   │   ├── loader.go             # 配置加载器
-│   │   └── watcher.go            # 热加载监听
-│   ├── logger/                   # 日志模块（Zap封装）
-│   │   └── logger.go             # 日志初始化
-│   ├── metrics/                  # 打点上报（Prometheus）
-│   │   └── metrics.go            # 指标收集
-│   ├── middleware/               # 核心中间件
-│   │   ├── response.go           # 统一响应
-│   │   ├── recovery.go           # 错误恢复
-│   │   └── logging.go            # 日志记录
-│   ├── router/                   # 路由注册
-│   │   └── router.go             # HTTP路由绑定
-│   └── grpc/                     # gRPC扩展（预留）
-│       └── server.go             # gRPC服务器
-├── pkg/                          # 公共工具库（对外暴露）
-│   ├── conv/                     # 数字转换工具
-│   │   └── conv.go               # 类型转换
-│   ├── pool/                     # 协程池
-│   │   └── worker_pool.go        # 任务池实现
-│   ├── retry/                    # 重试机制
-│   │   └── retry.go              # 带退避的重试
-│   └── once/                     # 仅运行一次
-│       └── once.go               # sync.Once封装
+├── internal/                     # 框架内部配置、日志和 HTTP 中间件
+├── pkg/                          # 对业务项目公开的基础能力
+│   ├── hconfig/                  # 本地 YAML 类型化加载
+│   ├── hlog/                     # Context 结构化日志
+│   ├── hgorm/                    # GORM MySQL 与连接池
+│   ├── hredis/                   # Redis 客户端
+│   └── hecode/                   # 统一错误码与响应
 ├── hollow.go                     # 框架入口
 └── example/                      # 使用示例
-    ├── config/config.go          # 业务生命周期 Hook
+    ├── config/config.go          # 类型化业务配置
+    ├── database/                 # MySQL、Redis 生命周期
     ├── proto/                    # Protobuf 定义和生成代码
     ├── router/router.go          # 生成路由注册
     ├── service/service.go        # Service 实现骨架
@@ -91,9 +74,11 @@ proto/*_myhttp.pb.go（自动生成 HTTP Adapter）
 → service（核心业务逻辑）
 → dao（数据访问）
 → model（数据库模型）
+
+service → cache（可选）
 ```
 
-项目不生成独立 `handler/` 目录。HTTP Adapter 保留在 `proto/*_myhttp.pb.go`，`make proto` 不会修改 `control/`、`service/`、`dao/`、`model/` 中的手写代码。
+项目不生成独立 `handler/` 目录。HTTP Adapter 保留在 `proto/*_myhttp.pb.go`，`make proto` 不会修改 `control/`、`service/`、`dao/`、`model/` 中的手写代码。`cache/` 仅在读多写少且允许短暂不一致时按需创建。
 
 新项目默认通过 Proto 提供 `GET /v1/health`，由 `control.Health` 调用 `service.Health`。Hollow 核心不注册服务级健康路由。
 
@@ -110,24 +95,43 @@ if err != nil {
 	return err
 }
 
-app.Startup(initDependencies)
-app.Shutdown(closeDependencies)
+app.Startup(
+	config.Startup,
+	database.InitMySQL,
+	database.InitRedis,
+)
+app.Shutdown(database.Shutdown)
 router.Register(app)
 return app.Run()
 ```
 
 `Startup(...)` 按注册顺序执行启动 Hook，`Shutdown(...)` 按注册的逆序执行关闭 Hook。`Run()` 启动 HTTP Server，并在收到退出信号后完成优雅关闭。
 
-## 2. 配置管理 (config.go)
-- 基于 Viper 实现，支持 YAML 配置文件
-- 支持 HTTP Server 和日志配置
-- 配置结构化管理
-## 3. 日志系统 (logger.go)
+## 2. 配置管理 (`pkg/hconfig`)
+- 启动时读取本地 `conf.yaml`
+- 支持类型化反序列化、调用方默认值和 `Validate()` 校验
+- 本期不包含热更新、远程配置或环境变量覆盖
+
+## 3. 日志系统 (`pkg/hlog`)
 - 基于 Zap 高性能日志库
 - 支持 Console 和 File 两种输出模式
-- 自动日志轮转
+- 支持日志文件轮转、保留份数和压缩
 - 支持 Debug/Info/Warn/Error 多级别
-## 4. 中间件系统 (middleware/)
+- Request ID 自动注入 Context，可在任意业务层直接使用：
+
+```go
+logger := hlog.FromContext(ctx).Named("CreatorService.GetHomepage").
+	With(hlog.String("open_id", openID))
+logger.Info("homepage loaded")
+```
+
+## 4. 数据库 (`pkg/hgorm`、`pkg/hredis`)
+
+- `hgorm.NewMySQL`：创建 GORM MySQL 客户端、配置连接池、Ping，并把 SQL 日志接入 Context Logger。
+- `hredis.NewClient`：创建原生 go-redis v9 客户端并 Ping。
+- CLI 默认生成 `database/mysql.go`、`database/redis.go`；通过 `conf.yaml` 的 `enabled` 开关启用。
+
+## 5. 中间件系统 (middleware/)
 采用 Gin 原生中间件模型；框架内置中间件和业务自定义中间件均为 `gin.HandlerFunc`，可通过 `app.Use(...)` 注册：
 
 - RequestID ：请求追踪 ID 生成
@@ -136,7 +140,7 @@ return app.Run()
 - Response ：统一响应格式处理
 - Metrics ：性能指标收集（可扩展）
 
-## 5. 工具包 hcond - 条件构造器
+## 6. 工具包 hcond - 条件构造器
 - 支持构建复杂的 SQL WHERE 条件
 - 支持逻辑运算符（AND/OR）
 - 支持比较运算符（=, !=, >, <, >=, <=, IN）
