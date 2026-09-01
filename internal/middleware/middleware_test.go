@@ -43,6 +43,29 @@ func TestRequestIDMiddlewarePropagatesOneID(t *testing.T) {
 	}
 }
 
+func TestMetricsMiddlewareCanBeRegisteredDirectly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	core, logs := observer.New(zapcore.InfoLevel)
+	router := gin.New()
+	router.Use(NewMetricsMiddleware(zap.New(core)))
+	router.GET("/metrics", func(c *gin.Context) { c.Status(http.StatusNoContent) })
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status=%d", rec.Code)
+	}
+	entries := logs.All()
+	if len(entries) != 1 {
+		t.Fatalf("metrics logs=%d", len(entries))
+	}
+	fields := entries[0].ContextMap()
+	if entries[0].Message != "请求耗时" || fields["method"] != http.MethodGet || fields["path"] != "/metrics" {
+		t.Fatalf("metrics log=%+v fields=%v", entries[0], fields)
+	}
+}
+
 func TestDefaultMiddlewarePipeline(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	core, logs := observer.New(zapcore.DebugLevel)
