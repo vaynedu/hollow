@@ -135,7 +135,8 @@ database/redis.go
 公开接口：
 
 ```go
-func Startup() error
+func InitMySQL() error
+func InitRedis() error
 func Shutdown(context.Context) error
 func MySQL() *gorm.DB
 func Redis() *redis.Client
@@ -148,7 +149,8 @@ func Redis() *redis.Client
 ```go
 app.Startup(
 	config.Startup,
-	database.Startup,
+	database.InitMySQL,
+	database.InitRedis,
 )
 app.Shutdown(database.Shutdown)
 ```
