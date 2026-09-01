@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/vaynedu/hollow/cmd/hollow_cli/generator"
 )
@@ -28,6 +30,13 @@ func newInitCommand() *cobra.Command {
 		Short: "初始化一个新的 Hollow 项目",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
+			// 发布包含新 API 的 Hollow 版本并更新 DefaultHollowVersion 后，移除此门禁。
+			if options.HollowPath == "" {
+				return fmt.Errorf(
+					"当前 Hollow %s 缺少 Startup/Shutdown/Run 与 pkg/hecode；请传 --hollow-path 指向本地 Hollow 源码",
+					generator.DefaultHollowVersion,
+				)
+			}
 			return initProject(args[0], options)
 		},
 	}

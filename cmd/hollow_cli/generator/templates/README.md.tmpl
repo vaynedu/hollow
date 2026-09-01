@@ -7,11 +7,13 @@
 要求 Go 1.25+、Protocol Buffers 编译器，并安装代码生成插件：
 
 ```bash
+git clone https://github.com/googleapis/googleapis.git /absolute/path/to/googleapis
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 (cd /path/to/protoc-gen-myhttp && go install .)
 ```
 
 `protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
+`google/api/annotations.proto` 来自 googleapis 仓库（也可使用已有安装）；`PROTO_INCLUDE` 必须指向 googleapis 根目录，且 `/absolute/path/to/googleapis/google/api/annotations.proto` 必须存在。
 
 当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`。未发布阶段创建项目时必须使用：
 
@@ -24,7 +26,7 @@ hollow-cli init {{.ProjectName}} --hollow-path /path/to/hollow
 ## 开发
 
 ```bash
-make proto
+make proto PROTO_INCLUDE=/absolute/path/to/googleapis
 make deps
 make test
 make run

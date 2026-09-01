@@ -55,6 +55,37 @@ func TestInitCommandRequiresExactlyOneProjectArgument(t *testing.T) {
 	}
 }
 
+func TestInitCommandRequiresHollowPathDuringReleaseGate(t *testing.T) {
+	called := false
+	originalInitProject := initProject
+	initProject = func(string, generator.ProjectOptions) error {
+		called = true
+		return nil
+	}
+	t.Cleanup(func() { initProject = originalInitProject })
+
+	root := newRootCommand()
+	root.SetArgs([]string{"init", "lifelog-server"})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected hollow-path error")
+	}
+	for _, fragment := range []string{
+		"v1.0.0",
+		"Startup/Shutdown/Run",
+		"pkg/hecode",
+		"--hollow-path",
+		"本地 Hollow",
+	} {
+		if !strings.Contains(err.Error(), fragment) {
+			t.Errorf("error=%q, want %q", err, fragment)
+		}
+	}
+	if called {
+		t.Fatal("generator called without --hollow-path")
+	}
+}
+
 func TestInitCommandPassesAllOptionsToGenerator(t *testing.T) {
 	wantProject := "lifelog-server"
 	wantOptions := generator.ProjectOptions{

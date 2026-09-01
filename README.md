@@ -7,16 +7,20 @@
 环境要求：Go 1.25+、Protocol Buffers 编译器，以及以下代码生成插件：
 
 ```bash
+git clone https://github.com/googleapis/googleapis.git /absolute/path/to/googleapis
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 (cd /path/to/protoc-gen-myhttp && go install .)
 ```
 
 `protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
+`google/api/annotations.proto` 来自 googleapis 仓库（也可使用已有安装）；`PROTO_INCLUDE` 必须指向 googleapis 根目录，且 `/absolute/path/to/googleapis/google/api/annotations.proto` 必须存在。
 
 当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`，本地开发必须显式指定当前 Hollow 源码：
 
 ```bash
 hollow-cli init <project> --hollow-path /path/to/hollow
+cd <project>
+make proto PROTO_INCLUDE=/absolute/path/to/googleapis
 ```
 
 只有发布包含新 API 的新 Hollow 版本（即包含 `Startup/Shutdown/Run` 与 `pkg/hecode`），并将 CLI 的 `DefaultHollowVersion` 更新到该新版本后，才可使用 `hollow-cli init <project>` 省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
@@ -72,7 +76,7 @@ hollow/
 生成并验证示例：
 
 ```bash
-make -C example proto
+make -C example proto PROTO_INCLUDE=/absolute/path/to/googleapis
 make -C example deps
 (cd example && go test ./... && go build ./...)
 ```

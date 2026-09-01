@@ -17,15 +17,17 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 1. 安装 Protocol Buffers 编译器和代码生成插件：
 
    ```bash
+   git clone https://github.com/googleapis/googleapis.git /absolute/path/to/googleapis
    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
    (cd /path/to/protoc-gen-myhttp && go install .)
    ```
 
    `protoc-gen-myhttp` 必须从已合入本次 HTTP adapter 修复的源码目录安装，不要使用尚未包含修复的 latest 版本。
+   `google/api/annotations.proto` 来自 googleapis 仓库（也可使用已有安装）；`PROTO_INCLUDE` 必须指向 googleapis 根目录，且 `/absolute/path/to/googleapis/google/api/annotations.proto` 必须存在。
 
 2. 创建：`hollow-cli init myapp --hollow-path /path/to/hollow && cd myapp`
 3. 定义：创建 `proto/user.proto` 定义服务和方法
-4. 生成：`make proto` 生成代码
+4. 生成：`make proto PROTO_INCLUDE=/absolute/path/to/googleapis` 生成代码
 5. 依赖：`make deps` 整理 Go module 依赖
 6. 运行：`make run` 启动服务
 
