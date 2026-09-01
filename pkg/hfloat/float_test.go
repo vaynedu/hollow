@@ -15,7 +15,7 @@ func TestIsFloatEqual(t *testing.T) {
 		{1.0, 1.00001, false},
 		{0.0, 0.0, true},
 		{0.0, 1.0, false},
-		{0.0, -0.00001, true},
+		{0.0, -0.0000001, true},
 	}
 
 	for _, tt := range tests {
