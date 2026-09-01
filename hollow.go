@@ -10,9 +10,11 @@ import (
 
 // App 框架核心结构体
 type App struct {
-	Engine *gin.Engine
-	Logger *zap.Logger
-	config *config.Config
+	Engine        *gin.Engine
+	Logger        *zap.Logger
+	config        *config.Config
+	startupHooks  []StartupFunc
+	shutdownHooks []ShutdownFunc
 }
 
 type AppOption struct {
