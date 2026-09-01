@@ -195,8 +195,11 @@ func TestInitProjectGeneratesGoldenTree(t *testing.T) {
 		"README.md",
 		"conf.yaml",
 		"config/config.go",
+		"control/control.go",
+		"dao/dao.go",
 		"go.mod",
 		"main.go",
+		"model/model.go",
 		"proto/lifelog.proto",
 		"router/router.go",
 		"service/service.go",
@@ -297,19 +300,31 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		t.Fatalf("main.go still uses removed lifecycle methods:\n%s", mainFile)
 	}
 
-	serviceFile := readProjectFile(t, target, "service/service.go")
-	assertContainsAll(t, "service/service.go", serviceFile,
+	controlFile := readProjectFile(t, target, "control/control.go")
+	assertContainsAll(t, "control/control.go", controlFile,
 		"proto.UnimplementedLifelogServiceService",
-		"func Get() *Service",
+		"func Get() *Control",
 		"return instance",
 	)
+
+	for _, file := range []string{"service/service.go", "dao/dao.go", "model/model.go"} {
+		content := readProjectFile(t, target, file)
+		for _, forbidden := range []string{"/proto", "gin-gonic", "gorm.io"} {
+			if strings.Contains(content, forbidden) {
+				t.Errorf("%s contains forbidden %q:\n%s", file, forbidden, content)
+			}
+		}
+	}
 
 	routerFile := readProjectFile(t, target, "router/router.go")
 	assertContainsAll(t, "router/router.go", routerFile,
 		"proto.RegisterLifelogServiceGinRouter(",
 		"app.Engine",
-		"service.Get(),",
+		"control.Get(),",
 	)
+	if strings.Contains(routerFile, "service.Get()") {
+		t.Fatalf("router/router.go still registers service:\n%s", routerFile)
+	}
 
 	makefile := readProjectFile(t, target, "Makefile")
 	assertContainsAll(t, "Makefile", makefile,

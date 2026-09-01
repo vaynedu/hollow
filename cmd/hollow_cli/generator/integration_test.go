@@ -18,10 +18,32 @@ func TestGeneratedProjectEndToEnd(t *testing.T) {
 	}
 
 	goModBefore := readFile(t, filepath.Join(target, "go.mod"))
+	handwrittenFiles := []string{
+		"control/control.go",
+		"service/service.go",
+		"dao/dao.go",
+		"model/model.go",
+	}
+	handwrittenBefore := make(map[string][]byte, len(handwrittenFiles))
+	for _, relativePath := range handwrittenFiles {
+		path := filepath.Join(target, relativePath)
+		content := append(readFile(t, path), []byte("\n// keep handwritten code\n")...)
+		if err := os.WriteFile(path, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+		handwrittenBefore[relativePath] = content
+	}
+
 	runCommand(t, target, "make", "proto")
 	goModAfter := readFile(t, filepath.Join(target, "go.mod"))
 	if !bytes.Equal(goModAfter, goModBefore) {
 		t.Fatalf("make proto changed go.mod:\n%s", goModAfter)
+	}
+	for relativePath, before := range handwrittenBefore {
+		after := readFile(t, filepath.Join(target, relativePath))
+		if !bytes.Equal(after, before) {
+			t.Errorf("make proto changed handwritten file %s", relativePath)
+		}
 	}
 
 	for _, command := range [][]string{

@@ -83,6 +83,18 @@ make -C example deps
 
 `make proto` 只生成 `*.pb.go` 和 `*_myhttp.pb.go`；`make deps` 显式整理 Go module 依赖。
 
+`hollow-cli init` 生成的业务项目采用一级目录分层：
+
+```text
+proto/*_myhttp.pb.go（自动生成 HTTP Adapter）
+→ control（接口校验、业务编排和响应组装）
+→ service（核心业务逻辑）
+→ dao（数据访问）
+→ model（数据库模型）
+```
+
+项目不生成独立 `handler/` 目录。HTTP Adapter 保留在 `proto/*_myhttp.pb.go`，`make proto` 不会修改 `control/`、`service/`、`dao/`、`model/` 中的手写代码。
+
 # 核心功能
 ## 1. 框架核心 (hollow.go)
 - App 结构体 ：框架的核心，管理整个应用生命周期

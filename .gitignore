@@ -1,7 +1,7 @@
 # Binaries for programs and plugins
 *.idea/
 .vscode
-hollow_cli
+/hollow_cli
 
 .superpowers/
 .worktrees/

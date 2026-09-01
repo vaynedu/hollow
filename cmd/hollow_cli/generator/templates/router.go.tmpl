@@ -3,14 +3,14 @@ package router
 import (
 	"github.com/vaynedu/hollow"
 
+	"{{.ModuleName}}/control"
 	"{{.ModuleName}}/proto"
-	"{{.ModuleName}}/service"
 )
 
 // Register 注册项目的 HTTP 路由。
 func Register(app *hollow.App) {
 	proto.Register{{.ServiceName}}GinRouter(
 		app.Engine,
-		service.Get(),
+		control.Get(),
 	)
 }
