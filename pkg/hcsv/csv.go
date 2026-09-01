@@ -1,4 +1,4 @@
-package hexcel
+package hcsv
 
 import (
 	"encoding/csv"
