@@ -3,16 +3,14 @@ package hcond
 type Op string
 
 const (
-	OpEq    Op = "=="
+	OpEq    Op = "="
 	OpNotEq Op = "!="
 	OpGt    Op = ">"
 	OpLt    Op = "<"
 	OpGte   Op = ">="
 	OpLte   Op = "<="
+	OpIn    Op = "IN"
 
-	OpIn Op = "IN"
-
-	OpAnd Op = "&&"
-	OpOr  Op = "||"
-	OpNot Op = "!"
+	OpAnd Op = "AND"
+	OpOr  Op = "OR"
 )
