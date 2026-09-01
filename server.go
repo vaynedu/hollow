@@ -45,9 +45,7 @@ func (app *App) run(ctx context.Context, listen func(string, string) (net.Listen
 	if !serveStopped {
 		serveErr = <-serveErrors
 	}
-	if errors.Is(serveErr, http.ErrServerClosed) {
-		serveErr = nil
-	}
+	serveErr = omitErrorLeaves(serveErr, http.ErrServerClosed)
 
 	return errors.Join(serveErr, shutdownErr)
 }
@@ -62,9 +60,48 @@ func (app *App) shutdown(server *http.Server) error {
 	}
 	hookErr := app.runShutdownHooks(ctx)
 	loggerErr := app.Logger.Sync()
-	if errors.Is(loggerErr, syscall.EINVAL) || errors.Is(loggerErr, syscall.ENOTTY) {
-		loggerErr = nil
+	if app.config.Log.OutputMode == "" || app.config.Log.OutputMode == "console" {
+		loggerErr = omitErrorLeaves(loggerErr, syscall.EINVAL, syscall.ENOTTY)
 	}
 
 	return errors.Join(serverErr, hookErr, loggerErr)
+}
+
+func omitErrorLeaves(err error, targets ...error) error {
+	filtered, _ := filterErrorLeaves(err, targets)
+	return filtered
+}
+
+func filterErrorLeaves(err error, targets []error) (error, bool) {
+	if err == nil {
+		return nil, false
+	}
+	if wrapped, ok := err.(interface{ Unwrap() []error }); ok {
+		var filtered []error
+		changed := false
+		for _, child := range wrapped.Unwrap() {
+			kept, childChanged := filterErrorLeaves(child, targets)
+			changed = changed || childChanged
+			if kept != nil {
+				filtered = append(filtered, kept)
+			}
+		}
+		if !changed {
+			return err, false
+		}
+		return errors.Join(filtered...), true
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		filtered, changed := filterErrorLeaves(wrapped.Unwrap(), targets)
+		if !changed {
+			return err, false
+		}
+		return filtered, true
+	}
+	for _, target := range targets {
+		if errors.Is(err, target) {
+			return nil, true
+		}
+	}
+	return err, false
 }

@@ -220,6 +220,55 @@ func TestRunIgnoresCommonTerminalLoggerSyncErrors(t *testing.T) {
 	}
 }
 
+func TestRunPreservesNonTerminalLoggerSyncErrors(t *testing.T) {
+	listenErr := errors.New("listen failed")
+	diskErr := errors.New("disk sync failed")
+	app := newUnitApp(t)
+	app.Logger = newSyncErrorLogger(errors.Join(syscall.EINVAL, diskErr))
+
+	err := app.run(context.Background(), func(string, string) (net.Listener, error) {
+		return nil, listenErr
+	})
+
+	if !errors.Is(err, listenErr) || !errors.Is(err, diskErr) {
+		t.Fatalf("error=%v want joined errors %v and %v", err, listenErr, diskErr)
+	}
+	if errors.Is(err, syscall.EINVAL) {
+		t.Fatalf("error=%v should omit console sync error %v", err, syscall.EINVAL)
+	}
+}
+
+func TestRunDoesNotIgnoreTerminalSyncErrorsForFileOutput(t *testing.T) {
+	listenErr := errors.New("listen failed")
+	app := newUnitApp(t)
+	app.config.Log.OutputMode = "file"
+	app.Logger = newSyncErrorLogger(syscall.ENOTTY)
+
+	err := app.run(context.Background(), func(string, string) (net.Listener, error) {
+		return nil, listenErr
+	})
+
+	if !errors.Is(err, listenErr) || !errors.Is(err, syscall.ENOTTY) {
+		t.Fatalf("error=%v want joined errors %v and %v", err, listenErr, syscall.ENOTTY)
+	}
+}
+
+func TestRunPreservesServeErrorsJoinedWithErrServerClosed(t *testing.T) {
+	serveErr := errors.New("serve failed")
+	app := newUnitApp(t)
+
+	err := app.run(context.Background(), func(string, string) (net.Listener, error) {
+		return &acceptErrorListener{err: errors.Join(http.ErrServerClosed, serveErr)}, nil
+	})
+
+	if !errors.Is(err, serveErr) {
+		t.Fatalf("error=%v want=%v", err, serveErr)
+	}
+	if errors.Is(err, http.ErrServerClosed) {
+		t.Fatalf("error=%v should omit %v", err, http.ErrServerClosed)
+	}
+}
+
 func newUnitApp(t *testing.T) *App {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
