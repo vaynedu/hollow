@@ -10,4 +10,7 @@
 //
 // 业务方建议从 9000 起定义自己的错码,避免与系统段冲突。
 // 错码全局唯一,重复注册会 panic(在 init 阶段就能发现)。
+//
+// Wrap / WithMessage 对非 EcodeError 类型的 err 会用 ErrCodeUnknown(1099)
+// 作为兜底错码;EcodeError 类型的 err 则保留原 code。
 package hecode

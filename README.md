@@ -88,11 +88,18 @@ hollow/
 - 支持文本消息推送 htime - 时间处理
 - 时间戳转换（秒级、毫秒级）
 - 时间格式化
-- 常用时间格式常量 hredlock - 分布式锁
-- 基于 Redis 的分布式锁实现
-- 适用于秒杀等高并发场景 hcsv - CSV 文件读取
-- 一次性加载 CSV 到内存,适合配置/小数据 hes - Elasticsearch 客户端
-- ES 连接和操作封装
+- 常用时间格式常量
+
+hredlock - 分布式锁
+- 基于 go-redsync/v4,Lock/Unlock 二件套
+- 接受外部 *redis.Client,锁 expiry 强制显式传入(防死锁)
+
+hcsv - CSV 文件读取
+- 一次性加载 CSV 到内存,适合配置/小数据
+
+hes - Elasticsearch 客户端
+- 基于 elasticsearch/v8,Config + NewClient(自带 Info 探活) + Ping 薄封装
+- 拿到原生 *elasticsearch.Client 后直接使用 v8 esapi
 
 # 技术栈
 - Web 框架 ：Gin
