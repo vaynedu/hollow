@@ -52,9 +52,24 @@ hollow/
 - 中间件管理 ：支持动态添加/移除中间件，自动去重
 - 优雅启停 ：通过信号处理实现优雅关闭
 - 依赖注入 ：支持用户自定义配置和中间件
+
+```go
+app, err := hollow.NewApp(hollow.AppOption{ConfigPath: ".", ConfigName: "conf"})
+if err != nil {
+	return err
+}
+
+app.Startup(initDependencies)
+app.Shutdown(closeDependencies)
+router.RegisterRoutes(app)
+return app.Run()
+```
+
+`Startup(...)` 按注册顺序执行启动 Hook，`Shutdown(...)` 按注册的逆序执行关闭 Hook。`Run()` 启动 HTTP Server，并在收到退出信号后完成优雅关闭。
+
 ## 2. 配置管理 (config.go)
 - 基于 Viper 实现，支持 YAML 配置文件
-- 支持日志、数据库、Redis 等配置
+- 支持 HTTP Server 和日志配置
 - 配置结构化管理
 ## 3. 日志系统 (logger.go)
 - 基于 Zap 高性能日志库

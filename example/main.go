@@ -1,29 +1,27 @@
 package main
 
 import (
+	"log"
+
 	"github.com/vaynedu/hollow"
 	"github.com/vaynedu/hollow/example/router"
 )
 
-func main() {
-	// 创建App选项
-	opts := hollow.AppOption{
+func run() error {
+	app, err := hollow.NewApp(hollow.AppOption{
 		ConfigPath: ".",
 		ConfigName: "conf",
-	}
-
-	// 创建 App 实例
-	app, err := hollow.NewApp(opts)
+	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	// 注册路由
 	router.RegisterRoutes(app)
+	return app.Run()
+}
 
-	// 启动服务
-	app.Start()
-
-	// 关闭服务
-	app.End()
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
 }

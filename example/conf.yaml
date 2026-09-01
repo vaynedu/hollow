@@ -1,10 +1,9 @@
-host: 127.0.0.1:8090
+server:
+  host: 127.0.0.1:8080
+  shutdown_timeout: 10s
 log:
   level: debug
-db:
-  dsn: root:123456@tcp(127.0.0.1:3306)/marketing?charset=utf8mb4&parseTime=True&loc=Local
-  dialect: mysql
-redis:
-  addr: 127.0.0.1:6379
-  password: 123456
-  db: 0
+  output_mode: console
+  file: app.log
+  max_size: 100
+  max_age: 30

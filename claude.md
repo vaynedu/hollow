@@ -21,6 +21,25 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供代码生�
 4. 生成：`make proto` 生成代码
 5. 运行：`make run` 启动服务
 
+## 应用生命周期
+
+```go
+app, err := hollow.NewApp(hollow.AppOption{ConfigPath: ".", ConfigName: "conf"})
+if err != nil {
+	return err
+}
+
+app.Startup(initDependencies)
+app.Shutdown(closeDependencies)
+router.RegisterRoutes(app)
+return app.Run()
+```
+
+- `Startup(...)`：注册应用启动 Hook，按注册顺序执行。
+- `Shutdown(...)`：注册应用关闭 Hook，按注册的逆序执行。
+- `router.RegisterRoutes(app)`：在 HTTP Server 启动前完成路由注册。
+- `Run()`：启动 HTTP Server，并在收到退出信号后完成优雅关闭。
+
 ## 示例 API
 - `POST /v1/users`：创建用户
 - `GET /v1/users`：查询列表
