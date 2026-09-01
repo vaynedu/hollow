@@ -33,8 +33,13 @@ func TestParseTimeStamp(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(got.Equal(time.UnixMilli(1672531200000)), ShouldBeTrue)
 		})
-		Convey("长度错误返回 error", func() {
-			_, err := ParseTimeStamp("12345")
+		Convey("小数值视为秒级", func() {
+			got, err := ParseTimeStamp("12345")
+			So(err, ShouldBeNil)
+			So(got.Equal(time.Unix(12345, 0)), ShouldBeTrue)
+		})
+		Convey("非数字字符串返回 error", func() {
+			_, err := ParseTimeStamp("not-a-number")
 			So(err, ShouldNotBeNil)
 		})
 	})

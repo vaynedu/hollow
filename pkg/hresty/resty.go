@@ -29,7 +29,6 @@ func NewTransport() *http.Transport {
 		DialContext: (&net.Dialer{
 			Timeout:   3 * time.Second,
 			KeepAlive: 30 * time.Second,
-			DualStack: true,
 		}).DialContext,
 		ForceAttemptHTTP2:     false,
 		MaxConnsPerHost:       runtime.GOMAXPROCS(0) * 64,

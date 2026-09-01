@@ -22,7 +22,11 @@ func ExampleNewClient() {
 	}
 
 	// 拿到原生 *elasticsearch.Client 后,可直接用 v8 的 esapi.*
-	res, _ := client.Info(client.Info.WithContext(ctx))
+	res, err := client.Info(client.Info.WithContext(ctx))
+	if err != nil {
+		fmt.Println("info failed:", err)
+		return
+	}
 	defer res.Body.Close()
 	fmt.Println(res.Status())
 }

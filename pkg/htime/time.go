@@ -1,7 +1,6 @@
 package htime
 
 import (
-	"errors"
 	"strconv"
 	"time"
 )
@@ -28,20 +27,20 @@ func TimeStampMsToTime(ts int64) time.Time {
 	return time.UnixMilli(ts)
 }
 
+// ParseTimeStamp 解析字符串时间戳,自动判断秒/毫秒
+//
+// 判定阈值:数值 < 1e10 视为秒级,>= 1e10 视为毫秒级
+// (1e10 秒约 2286 年,实际业务场景几乎不会越过)
 func ParseTimeStamp(timeStampStr string) (time.Time, error) {
-	timeStamp, err := strconv.ParseInt(timeStampStr, 10, 64)
+	ts, err := strconv.ParseInt(timeStampStr, 10, 64)
 	if err != nil {
 		return time.Time{}, err
 	}
-	var res time.Time
-	if len(timeStampStr) == 10 { // 秒级
-		res = time.Unix(timeStamp, 0)
-	} else if len(timeStampStr) == 13 { // 毫米级
-		res = time.UnixMilli(timeStamp)
-	} else {
-		return time.Time{}, errors.New("invalid timestamp")
+	const secMilliBoundary = 1e10
+	if ts < secMilliBoundary {
+		return time.Unix(ts, 0), nil
 	}
-	return res, nil
+	return time.UnixMilli(ts), nil
 }
 
 func ParseTimeDataStandard(timeStr string) (time.Time, error) {
