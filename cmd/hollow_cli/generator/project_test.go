@@ -81,11 +81,9 @@ func TestInitProjectCleansTemporaryDirectoryOnRenderFailure(t *testing.T) {
 	}
 
 	renderErr := errors.New("render failed")
-	calls := 0
 	originalWriter := projectTemplateWriter
 	projectTemplateWriter = func(path, templateName string, config ProjectConfig) error {
-		calls++
-		if calls == 2 {
+		if templateName == "README.md.tmpl" {
 			return renderErr
 		}
 		return writeTemplate(path, templateName, config)
@@ -95,6 +93,10 @@ func TestInitProjectCleansTemporaryDirectoryOnRenderFailure(t *testing.T) {
 	err := InitProject(target, ProjectOptions{})
 	if !errors.Is(err, renderErr) {
 		t.Fatalf("error=%v, want %v", err, renderErr)
+	}
+	finalFile := filepath.Join(target, "README.md")
+	if !strings.Contains(err.Error(), finalFile) {
+		t.Fatalf("error=%v, want final file path %q", err, finalFile)
 	}
 	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("target stat error=%v, want not exist", err)
@@ -109,6 +111,73 @@ func TestInitProjectCleansTemporaryDirectoryOnRenderFailure(t *testing.T) {
 	}
 	if len(entries) != 1 || entries[0].Name() != filepath.Base(keep) {
 		t.Fatalf("parent entries=%v, want only %q", entries, filepath.Base(keep))
+	}
+}
+
+func TestInitProjectNeverReplacesTargetCreatedBeforePublish(t *testing.T) {
+	tests := []struct {
+		name         string
+		withSentinel bool
+	}{
+		{name: "empty directory"},
+		{name: "directory with sentinel", withSentinel: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parent := t.TempDir()
+			target := filepath.Join(parent, "lifelog-server")
+			var hookErr error
+			created := false
+			originalWriter := projectTemplateWriter
+			projectTemplateWriter = func(path, templateName string, config ProjectConfig) error {
+				if err := writeTemplate(path, templateName, config); err != nil {
+					return err
+				}
+				if created {
+					return nil
+				}
+				created = true
+				hookErr = os.Mkdir(target, 0755)
+				if hookErr == nil && tt.withSentinel {
+					hookErr = os.WriteFile(filepath.Join(target, "sentinel"), []byte("keep"), 0644)
+				}
+				return hookErr
+			}
+			defer func() { projectTemplateWriter = originalWriter }()
+
+			err := InitProject(target, ProjectOptions{})
+			if hookErr != nil {
+				t.Fatalf("publish hook: %v", hookErr)
+			}
+			if err == nil || !strings.Contains(err.Error(), "already exists") {
+				t.Fatalf("error=%v, want already exists", err)
+			}
+
+			entries, err := os.ReadDir(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.withSentinel {
+				if len(entries) != 1 || entries[0].Name() != "sentinel" {
+					t.Fatalf("target entries=%v, want sentinel", entries)
+				}
+				content, err := os.ReadFile(filepath.Join(target, "sentinel"))
+				if err != nil || string(content) != "keep" {
+					t.Fatalf("sentinel content=%q error=%v", content, err)
+				}
+			} else if len(entries) != 0 {
+				t.Fatalf("target entries=%v, want empty", entries)
+			}
+
+			parentEntries, err := os.ReadDir(parent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(parentEntries) != 1 || parentEntries[0].Name() != filepath.Base(target) {
+				t.Fatalf("parent entries=%v, want only target", parentEntries)
+			}
+		})
 	}
 }
 

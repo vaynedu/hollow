@@ -121,17 +121,55 @@ func initProject(
 
 	for _, file := range projectFiles(config) {
 		target := filepath.Join(temporaryPath, file.path)
+		finalTarget := filepath.Join(projectPath, file.path)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 			return fmt.Errorf("create directory for %q: %w", target, err)
 		}
 		if err := write(target, file.template, config); err != nil {
-			return err
+			return fmt.Errorf("render project file %q: %w", finalTarget, err)
 		}
 	}
 
-	if err := os.Rename(temporaryPath, projectPath); err != nil {
-		return fmt.Errorf("publish project %q: %w", projectPath, err)
+	if err := publishProject(temporaryPath, projectPath); err != nil {
+		return err
 	}
 	committed = true
+	return nil
+}
+
+func publishProject(temporaryPath, projectPath string) (returnErr error) {
+	if err := os.Mkdir(projectPath, 0755); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("target %q already exists", projectPath)
+		}
+		return fmt.Errorf("create target %q: %w", projectPath, err)
+	}
+
+	published := false
+	defer func() {
+		if published {
+			return
+		}
+		if err := os.RemoveAll(projectPath); err != nil {
+			returnErr = errors.Join(returnErr, fmt.Errorf("clean target %q: %w", projectPath, err))
+		}
+	}()
+
+	entries, err := os.ReadDir(temporaryPath)
+	if err != nil {
+		return fmt.Errorf("read temporary project %q: %w", temporaryPath, err)
+	}
+	for _, entry := range entries {
+		source := filepath.Join(temporaryPath, entry.Name())
+		target := filepath.Join(projectPath, entry.Name())
+		if err := os.Rename(source, target); err != nil {
+			return fmt.Errorf("publish project entry %q: %w", target, err)
+		}
+	}
+	if err := os.Remove(temporaryPath); err != nil {
+		return fmt.Errorf("remove temporary project %q: %w", temporaryPath, err)
+	}
+
+	published = true
 	return nil
 }
