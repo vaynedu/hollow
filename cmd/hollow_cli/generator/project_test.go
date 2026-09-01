@@ -302,14 +302,22 @@ func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
 	readme := readProjectFile(t, target, "README.md")
 	assertContainsAll(t, "README.md", readme,
 		"Go 1.25+",
+		"Protocol Buffers 编译器",
 		"go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11",
 		"(cd /path/to/protoc-gen-myhttp && go install .)",
 		"hollow-cli init lifelog-server --hollow-path /path/to/hollow",
 		"Startup/Shutdown/Run",
 		"pkg/hecode",
-		"兼容 `v1.0.0`",
-		"才能省略 `--hollow-path`",
+		"发布包含新 API 的新 Hollow 版本",
+		"`DefaultHollowVersion` 更新到该新版本",
+		"才可省略 `--hollow-path`",
+		"现有 `v1.0.0` 标签不得移动或覆盖",
 	)
+	for _, forbidden := range []string{"兼容 `v1.0.0`", "发布新的 `v1.0.0`"} {
+		if strings.Contains(readme, forbidden) {
+			t.Fatalf("README.md contains forbidden %q:\n%s", forbidden, readme)
+		}
+	}
 }
 
 func assertExactTree(t *testing.T, root string, want []string) {

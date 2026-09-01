@@ -29,7 +29,7 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 5. 依赖：`make deps` 整理 Go module 依赖
 6. 运行：`make run` 启动服务
 
-当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`，因此未发布阶段必须传 `--hollow-path`。只有发布了同时包含上述 API 的兼容 `v1.0.0` 后，才能使用无该参数的默认流程；不要移动或覆盖现有 `v1.0.0` 标签。
+当前发布的 `v1.0.0` 尚未同时包含 `Startup/Shutdown/Run` 与 `pkg/hecode`，因此未发布阶段必须传 `--hollow-path`。只有发布包含新 API 的新 Hollow 版本（即包含 `Startup/Shutdown/Run` 与 `pkg/hecode`），并将 CLI 的 `DefaultHollowVersion` 更新到该新版本后，才可使用无该参数的默认流程。现有 `v1.0.0` 标签不得移动或覆盖。
 
 ## 应用生命周期
 

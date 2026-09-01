@@ -19,7 +19,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 hollow-cli init <project> --hollow-path /path/to/hollow
 ```
 
-只有发布了同时包含上述 API 的兼容 `v1.0.0` 后，才能使用 `hollow-cli init <project>` 省略 `--hollow-path`。不要移动或覆盖现有 `v1.0.0` 标签。
+只有发布包含新 API 的新 Hollow 版本（即包含 `Startup/Shutdown/Run` 与 `pkg/hecode`），并将 CLI 的 `DefaultHollowVersion` 更新到该新版本后，才可使用 `hollow-cli init <project>` 省略 `--hollow-path`。现有 `v1.0.0` 标签不得移动或覆盖。
 
 # 项目结构
 
