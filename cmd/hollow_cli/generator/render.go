@@ -27,10 +27,12 @@ func projectFiles(config ProjectConfig) []projectFile {
 		{path: "Makefile", template: "Makefile.tmpl"},
 		{path: "config/config.go", template: "config.go.tmpl"},
 		{path: "control/control.go", template: "control.go.tmpl"},
+		{path: "control/health.go", template: "control_health.go.tmpl"},
 		{path: "dao/dao.go", template: "dao.go.tmpl"},
 		{path: "model/model.go", template: "model.go.tmpl"},
 		{path: filepath.Join("proto", config.ProtoName+".proto"), template: "proto.tmpl"},
 		{path: "router/router.go", template: "router.go.tmpl"},
+		{path: "service/health.go", template: "service_health.go.tmpl"},
 		{path: "service/service.go", template: "service.go.tmpl"},
 	}
 }

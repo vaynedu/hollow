@@ -37,6 +37,8 @@ proto/*_myhttp.pb.go（自动生成）
 
 `make proto` 只更新 `proto/*.pb.go` 和 `proto/*_myhttp.pb.go`。`control/`、`service/`、`dao/`、`model/` 是手写代码，不会被覆盖。
 
+新项目默认提供 `GET /v1/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
+
 ```bash
 make proto PROTO_INCLUDE=/absolute/path/to/googleapis
 make deps

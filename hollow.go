@@ -51,9 +51,6 @@ func NewApp(opts AppOption) (*App, error) {
 		config: cfg,
 	}
 	app.Engine.Use(middleware.RegisterDefaultMiddlewares(app.Logger)...)
-	app.Engine.GET("/-/health", func(c *gin.Context) {
-		c.Set("data", gin.H{"status": "ok"})
-	})
 
 	return app, nil
 }

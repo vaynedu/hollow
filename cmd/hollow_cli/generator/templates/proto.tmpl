@@ -6,16 +6,16 @@ option go_package = "{{.ModuleName}}/proto";
 
 import "google/api/annotations.proto";
 
-message PingRequest {}
+message HealthRequest {}
 
-message PingResponse {
-  string message = 1;
+message HealthResponse {
+  string status = 1;
 }
 
 service {{.ServiceName}} {
-  rpc Ping(PingRequest) returns (PingResponse) {
+  rpc Health(HealthRequest) returns (HealthResponse) {
     option (google.api.http) = {
-      get: "/v1/ping"
+      get: "/v1/health"
     };
   }
 }

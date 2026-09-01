@@ -1,7 +1,6 @@
 package hollow_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,24 +28,12 @@ func TestAppAcceptsExternalGinMiddleware(t *testing.T) {
 	}
 }
 
-func TestHealthEndpoint(t *testing.T) {
+func TestAppDoesNotRegisterServiceHealthEndpoint(t *testing.T) {
 	app := newTestApp(t)
-	rec := httptest.NewRecorder()
-	app.Engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/-/health", nil))
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
-	}
-	var response struct {
-		Data struct {
-			Status string `json:"status"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
-		t.Fatalf("解析健康检查响应失败: %v", err)
-	}
-	if response.Data.Status != "ok" {
-		t.Fatalf("health status=%q", response.Data.Status)
+	for _, route := range app.Engine.Routes() {
+		if route.Path == "/-/health" {
+			t.Fatalf("Hollow 不应注册服务级健康路由: %+v", route)
+		}
 	}
 }
 

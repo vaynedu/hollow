@@ -20,7 +20,9 @@ func TestGeneratedProjectEndToEnd(t *testing.T) {
 	goModBefore := readFile(t, filepath.Join(target, "go.mod"))
 	handwrittenFiles := []string{
 		"control/control.go",
+		"control/health.go",
 		"service/service.go",
+		"service/health.go",
 		"dao/dao.go",
 		"model/model.go",
 	}

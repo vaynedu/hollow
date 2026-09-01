@@ -98,9 +98,12 @@ func TestRunStopsOnContextCancellation(t *testing.T) {
 	}
 }
 
-func TestRunServesHealthEndpointUntilCancellation(t *testing.T) {
+func TestRunServesRegisteredRouteUntilCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	app := newUnitApp(t)
+	app.Engine.GET("/ready", func(c *gin.Context) {
+		c.Set("data", gin.H{"status": "ok"})
+	})
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +116,7 @@ func TestRunServesHealthEndpointUntilCancellation(t *testing.T) {
 	}()
 
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get("http://" + ln.Addr().String() + "/-/health")
+	resp, err := client.Get("http://" + ln.Addr().String() + "/ready")
 	if err != nil {
 		cancel()
 		t.Fatalf("请求健康检查失败: %v", err)

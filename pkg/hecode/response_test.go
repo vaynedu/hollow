@@ -19,6 +19,8 @@ func TestResponseResolution(t *testing.T) {
 		{"permission denied", ErrPermissionDenied, 403, 1202, "permission denied"},
 		{"forbidden", ErrForbidden, 403, 1203, "forbidden access"},
 		{"not found", ErrNotFound, 404, 1200, "resource not found"},
+		{"service unavailable", ErrService, 503, 1007, "service unavailable"},
+		{"timeout", ErrTimeout, 504, 1004, "request timeout"},
 		{"plain error", errors.New("dsn=root:secret"), 500, 1001, "internal server error"},
 	}
 	for _, tt := range tests {

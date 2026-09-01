@@ -1,0 +1,17 @@
+package control
+
+import (
+	"context"
+
+	"{{.ModuleName}}/proto"
+	"{{.ModuleName}}/service"
+)
+
+// Health 返回服务健康状态。
+func (Control) Health(ctx context.Context, _ *proto.HealthRequest) (*proto.HealthResponse, error) {
+	status, err := service.Health(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.HealthResponse{Status: status}, nil
+}

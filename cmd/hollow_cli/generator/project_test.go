@@ -196,12 +196,14 @@ func TestInitProjectGeneratesGoldenTree(t *testing.T) {
 		"conf.yaml",
 		"config/config.go",
 		"control/control.go",
+		"control/health.go",
 		"dao/dao.go",
 		"go.mod",
 		"main.go",
 		"model/model.go",
 		"proto/lifelog.proto",
 		"router/router.go",
+		"service/health.go",
 		"service/service.go",
 	}
 	assertExactTree(t, target, want)
@@ -306,6 +308,29 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		"func Get() *Control",
 		"return instance",
 	)
+	healthControlFile := readProjectFile(t, target, "control/health.go")
+	assertContainsAll(t, "control/health.go", healthControlFile,
+		"func (Control) Health(",
+		"service.Health(ctx)",
+		"&proto.HealthResponse{Status: status}",
+	)
+	healthServiceFile := readProjectFile(t, target, "service/health.go")
+	assertContainsAll(t, "service/health.go", healthServiceFile,
+		"func Health(ctx context.Context) (string, error)",
+		`return "ok", nil`,
+	)
+	protoFile := readProjectFile(t, target, "proto/lifelog.proto")
+	assertContainsAll(t, "proto/lifelog.proto", protoFile,
+		"message HealthRequest {}",
+		"message HealthResponse {",
+		"rpc Health(HealthRequest) returns (HealthResponse)",
+		`get: "/v1/health"`,
+	)
+	for _, forbidden := range []string{"PingRequest", "PingResponse", "rpc Ping", `get: "/v1/ping"`} {
+		if strings.Contains(protoFile, forbidden) {
+			t.Errorf("proto/lifelog.proto contains forbidden %q:\n%s", forbidden, protoFile)
+		}
+	}
 
 	for _, file := range []string{"service/service.go", "dao/dao.go", "model/model.go"} {
 		content := readProjectFile(t, target, file)

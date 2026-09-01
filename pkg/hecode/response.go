@@ -34,6 +34,10 @@ func Resolve(err error) (int, int, string) {
 	switch target.Code() {
 	case 1100:
 		status = http.StatusBadRequest
+	case 1007:
+		status = http.StatusServiceUnavailable
+	case 1004:
+		status = http.StatusGatewayTimeout
 	case 1204:
 		status = http.StatusUnauthorized
 	case 1202, 1203:

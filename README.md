@@ -95,6 +95,8 @@ proto/*_myhttp.pb.go（自动生成 HTTP Adapter）
 
 项目不生成独立 `handler/` 目录。HTTP Adapter 保留在 `proto/*_myhttp.pb.go`，`make proto` 不会修改 `control/`、`service/`、`dao/`、`model/` 中的手写代码。
 
+新项目默认通过 Proto 提供 `GET /v1/health`，由 `control.Health` 调用 `service.Health`。Hollow 核心不注册服务级健康路由。
+
 # 核心功能
 ## 1. 框架核心 (hollow.go)
 - App 结构体 ：框架的核心，管理整个应用生命周期
