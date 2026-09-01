@@ -9,3 +9,11 @@ func ExampleNewUuid() {
 	// Output:
 	// 36
 }
+
+func ExampleNewSnowflake() {
+	gen, _ := NewSnowflake(1)
+	id := gen.GenerateInt64()
+	fmt.Println(id > 0)
+	// Output:
+	// true
+}
