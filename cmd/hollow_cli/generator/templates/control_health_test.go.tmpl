@@ -1,0 +1,20 @@
+package control
+
+import (
+	"context"
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+
+	"{{.ModuleName}}/proto"
+)
+
+func TestHealth(t *testing.T) {
+	Convey("Health 返回服务健康状态", t, func() {
+		response, err := Get().Health(context.Background(), &proto.HealthRequest{})
+
+		So(err, ShouldBeNil)
+		So(response, ShouldNotBeNil)
+		So(response.Status, ShouldEqual, "ok")
+	})
+}

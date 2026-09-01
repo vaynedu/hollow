@@ -6,6 +6,7 @@ import (
 	"github.com/vaynedu/hollow"
 
 	"{{.ModuleName}}/config"
+	"{{.ModuleName}}/database"
 	"{{.ModuleName}}/router"
 )
 
@@ -18,8 +19,12 @@ func run() error {
 		return err
 	}
 
-	app.Startup(config.Startup)
-	app.Shutdown(config.Shutdown)
+	app.Startup(
+		config.Startup,
+		database.InitMySQL,
+		database.InitRedis,
+	)
+	app.Shutdown(database.Shutdown)
 	router.Register(app)
 	return app.Run()
 }

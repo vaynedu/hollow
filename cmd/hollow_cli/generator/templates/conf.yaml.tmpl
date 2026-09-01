@@ -7,4 +7,26 @@ log:
   output_mode: console
   file: app.log
   max_size: 100
+  max_backups: 3
   max_age: 30
+  compress: false
+
+database:
+  mysql:
+    enabled: false
+    dsn: root:password@tcp(127.0.0.1:3306)/{{.ProtoName}}?charset=utf8mb4&parseTime=True&loc=Local
+    max_open_conns: 50
+    max_idle_conns: 10
+    conn_max_lifetime: 1h
+    conn_max_idle_time: 30m
+    slow_threshold: 200ms
+    log_level: warn
+  redis:
+    enabled: false
+    addr: 127.0.0.1:6379
+    password: ""
+    db: 0
+    pool_size: 10
+    dial_timeout: 5s
+    read_timeout: 3s
+    write_timeout: 3s

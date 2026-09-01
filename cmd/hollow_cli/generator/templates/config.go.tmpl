@@ -1,13 +1,76 @@
 package config
 
-import "context"
+import (
+	"errors"
+	"strings"
+
+	"github.com/vaynedu/hollow/pkg/hconfig"
+	"github.com/vaynedu/hollow/pkg/hgorm"
+	"github.com/vaynedu/hollow/pkg/hredis"
+)
+
+var (
+	// ErrMySQLDSNRequired 表示启用 MySQL 后未配置 DSN。
+	ErrMySQLDSNRequired = errors.New("config: database.mysql.dsn is required when enabled")
+	// ErrRedisAddrRequired 表示启用 Redis 后未配置地址。
+	ErrRedisAddrRequired = errors.New("config: database.redis.addr is required when enabled")
+)
+
+// Config 定义项目业务配置。
+type Config struct {
+	Database DatabaseConfig `mapstructure:"database"`
+}
+
+// DatabaseConfig 定义项目使用的数据库组件。
+type DatabaseConfig struct {
+	MySQL MySQLConfig `mapstructure:"mysql"`
+	Redis RedisConfig `mapstructure:"redis"`
+}
+
+// MySQLConfig 使用 enabled 控制是否初始化 MySQL。
+type MySQLConfig struct {
+	Enabled      bool `mapstructure:"enabled"`
+	hgorm.Config `mapstructure:",squash"`
+}
+
+// RedisConfig 使用 enabled 控制是否初始化 Redis。
+type RedisConfig struct {
+	Enabled       bool `mapstructure:"enabled"`
+	hredis.Config `mapstructure:",squash"`
+}
+
+var current *Config
 
 // Startup 初始化业务配置。
 func Startup() error {
+	cfg, err := load(".", "conf")
+	if err != nil {
+		return err
+	}
+	current = cfg
 	return nil
 }
 
-// Shutdown 释放业务配置持有的资源。
-func Shutdown(context.Context) error {
+// Get 返回启动时加载的只读配置。
+func Get() *Config {
+	return current
+}
+
+func load(path, name string) (*Config, error) {
+	cfg := new(Config)
+	if err := hconfig.Load(path, name, cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+// Validate 校验已启用组件的必填配置。
+func (c *Config) Validate() error {
+	if c.Database.MySQL.Enabled && strings.TrimSpace(c.Database.MySQL.DSN) == "" {
+		return ErrMySQLDSNRequired
+	}
+	if c.Database.Redis.Enabled && strings.TrimSpace(c.Database.Redis.Addr) == "" {
+		return ErrRedisAddrRequired
+	}
 	return nil
 }

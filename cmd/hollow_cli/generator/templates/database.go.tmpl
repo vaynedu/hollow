@@ -1,0 +1,25 @@
+// Package database 管理项目数据库连接的生命周期。
+package database
+
+import (
+	"context"
+	"errors"
+
+	"{{.ModuleName}}/config"
+)
+
+// ErrConfigNotLoaded 表示数据库初始化早于配置加载。
+var ErrConfigNotLoaded = errors.New("database: config is not loaded")
+
+// Shutdown 按 Redis、MySQL 的逆序关闭数据库资源。
+func Shutdown(ctx context.Context) error {
+	return errors.Join(closeRedis(ctx), closeMySQL(ctx))
+}
+
+func loadedConfig() (*config.Config, error) {
+	cfg := config.Get()
+	if cfg == nil {
+		return nil, ErrConfigNotLoaded
+	}
+	return cfg, nil
+}

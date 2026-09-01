@@ -195,15 +195,21 @@ func TestInitProjectGeneratesGoldenTree(t *testing.T) {
 		"README.md",
 		"conf.yaml",
 		"config/config.go",
+		"config/config_test.go",
 		"control/control.go",
 		"control/health.go",
+		"control/health_test.go",
 		"dao/dao.go",
+		"database/database.go",
+		"database/mysql.go",
+		"database/redis.go",
 		"go.mod",
 		"main.go",
 		"model/model.go",
 		"proto/lifelog.proto",
 		"router/router.go",
 		"service/health.go",
+		"service/health_test.go",
 		"service/service.go",
 	}
 	assertExactTree(t, target, want)
@@ -293,8 +299,10 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 	mainFile := readProjectFile(t, target, "main.go")
 	assertContainsAll(t, "main.go", mainFile,
 		"hollow.NewApp(",
-		"app.Startup(config.Startup)",
-		"app.Shutdown(config.Shutdown)",
+		"config.Startup",
+		"database.InitMySQL",
+		"database.InitRedis",
+		"app.Shutdown(database.Shutdown)",
 		"router.Register(app)",
 		"return app.Run()",
 	)
@@ -310,10 +318,58 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 	)
 	healthControlFile := readProjectFile(t, target, "control/health.go")
 	assertContainsAll(t, "control/health.go", healthControlFile,
+		"hlog.FromContext(ctx)",
 		"func (Control) Health(",
 		"service.Health(ctx)",
 		"&proto.HealthResponse{Status: status}",
 	)
+	configFile := readProjectFile(t, target, "config/config.go")
+	assertContainsAll(t, "config/config.go", configFile,
+		"type Config struct",
+		"type DatabaseConfig struct",
+		"func Startup() error",
+		"func Get() *Config",
+		"hconfig.Load(path, name, cfg)",
+		"func (c *Config) Validate() error",
+	)
+	databaseFile := readProjectFile(t, target, "database/database.go")
+	assertContainsAll(t, "database/database.go", databaseFile,
+		"func Shutdown(ctx context.Context) error",
+		"errors.Join",
+	)
+	mysqlFile := readProjectFile(t, target, "database/mysql.go")
+	assertContainsAll(t, "database/mysql.go", mysqlFile,
+		"func InitMySQL() error",
+		"hgorm.NewMySQL",
+		"func MySQL() *gorm.DB",
+	)
+	redisFile := readProjectFile(t, target, "database/redis.go")
+	assertContainsAll(t, "database/redis.go", redisFile,
+		"func InitRedis() error",
+		"hredis.NewClient",
+		"func Redis() *redis.Client",
+	)
+	confFile := readProjectFile(t, target, "conf.yaml")
+	assertContainsAll(t, "conf.yaml", confFile,
+		"database:",
+		"mysql:",
+		"redis:",
+		"enabled: false",
+	)
+	goMod := readProjectFile(t, target, "go.mod")
+	assertContainsAll(t, "go.mod", goMod,
+		"github.com/smartystreets/goconvey",
+		"github.com/redis/go-redis/v9",
+		"gorm.io/gorm",
+	)
+	for _, file := range []string{
+		"config/config_test.go",
+		"control/health_test.go",
+		"service/health_test.go",
+	} {
+		content := readProjectFile(t, target, file)
+		assertContainsAll(t, file, content, "Convey(", "So(")
+	}
 	healthServiceFile := readProjectFile(t, target, "service/health.go")
 	assertContainsAll(t, "service/health.go", healthServiceFile,
 		"func Health(ctx context.Context) (string, error)",

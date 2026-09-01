@@ -40,13 +40,13 @@ func NewApp(opts AppOption) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	hlog.SetDefault(log)
 
 	// 初始化日志
 	log, err := logger.InitLogger(cfg)
 	if err != nil {
 		return nil, err
 	}
+	hlog.SetDefault(log)
 
 	app := &App{
 		Engine: gin.New(),
