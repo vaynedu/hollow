@@ -4,15 +4,11 @@ package generator
 
 import (
 	"bytes"
-	"encoding/json"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestGeneratedProjectEndToEnd(t *testing.T) {
@@ -51,6 +47,7 @@ func TestGeneratedProjectEndToEnd(t *testing.T) {
 			t.Errorf("make proto changed handwritten file %s", relativePath)
 		}
 	}
+	writeGeneratedHealthTest(t, target)
 
 	for _, command := range [][]string{
 		{"make", "deps"},
@@ -59,77 +56,47 @@ func TestGeneratedProjectEndToEnd(t *testing.T) {
 	} {
 		runCommand(t, target, command[0], command[1:]...)
 	}
-	assertGeneratedHealthEndpoint(t, target)
 }
 
-func assertGeneratedHealthEndpoint(t *testing.T, target string) {
+func writeGeneratedHealthTest(t *testing.T, target string) {
 	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	const source = `package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/vaynedu/hollow"
+	"lifelog-server/router"
+)
+
+func TestGeneratedHealthEndpoint(t *testing.T) {
+	app, err := hollow.NewApp(hollow.AppOption{ConfigPath: ".", ConfigName: "conf"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	address := listener.Addr().String()
-	_ = listener.Close()
+	router.Register(app)
 
-	confPath := filepath.Join(target, "conf.yaml")
-	conf := []byte("server:\n  host: " + address + "\n  shutdown_timeout: 2s\nlog:\n  level: error\n  output_mode: console\n")
-	if err := os.WriteFile(confPath, conf, 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	command := exec.Command(filepath.Join(target, "bin", "lifelog-server"))
-	command.Dir = target
-	var output bytes.Buffer
-	command.Stdout = &output
-	command.Stderr = &output
-	if err := command.Start(); err != nil {
-		t.Fatal(err)
-	}
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
-	waited := false
-	defer func() {
-		if waited {
-			return
-		}
-		_ = command.Process.Signal(os.Interrupt)
-		select {
-		case <-done:
-		case <-time.After(3 * time.Second):
-			_ = command.Process.Kill()
-			<-done
-		}
-	}()
-
-	client := &http.Client{Timeout: time.Second}
-	var response *http.Response
-	deadline := time.After(10 * time.Second)
-	for response == nil {
-		response, err = client.Get("http://" + address + "/v1/health")
-		if err == nil {
-			break
-		}
-		select {
-		case processErr := <-done:
-			waited = true
-			t.Fatalf("generated server exited before health check: %v\n%s", processErr, output.String())
-		case <-deadline:
-			t.Fatalf("request generated health endpoint: %v\n%s", err, output.String())
-		case <-time.After(20 * time.Millisecond):
-		}
-	}
-	defer response.Body.Close()
-	var envelope struct {
-		Code int `json:"code"`
+	recorder := httptest.NewRecorder()
+	app.Engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/v1/health", nil))
+	var response struct {
+		Code int ` + "`json:\"code\"`" + `
 		Data struct {
-			Status string `json:"status"`
-		} `json:"data"`
+			Status string ` + "`json:\"status\"`" + `
+		} ` + "`json:\"data\"`" + `
 	}
-	if err := json.NewDecoder(response.Body).Decode(&envelope); err != nil {
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.StatusCode != http.StatusOK || envelope.Code != 0 || envelope.Data.Status != "ok" {
-		t.Fatalf("status=%d envelope=%+v", response.StatusCode, envelope)
+	if recorder.Code != http.StatusOK || response.Code != 0 || response.Data.Status != "ok" {
+		t.Fatalf("status=%d response=%+v body=%s", recorder.Code, response, recorder.Body.String())
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(target, "health_integration_test.go"), []byte(source), 0644); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package hollow_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -44,6 +45,15 @@ func TestUnknownRouteReturnsNotFound(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Code int `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("解析未找到响应失败: %v", err)
+	}
+	if response.Code != 1200 {
+		t.Fatalf("code=%d body=%s", response.Code, rec.Body.String())
 	}
 }
 
