@@ -3,35 +3,33 @@ package logger
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/smartystreets/goconvey/convey"
 	"github.com/vaynedu/hollow/internal/config"
 	"go.uber.org/zap"
 )
 
 func TestInitLogger(t *testing.T) {
-	tests := []struct {
-		name    string
-		cfg     *config.Config
-		wantErr bool
-	}{
-		{
-			name: "default config",
-			cfg:  nil,
-			wantErr: false,
-		},
-		{
-			name: "with console config",
-			cfg: &config.Config{
+	Convey("InitLogger 各种配置", t, func() {
+		Convey("default config (nil)", func() {
+			log, err := InitLogger(nil)
+			So(err, ShouldBeNil)
+			So(log, ShouldNotBeNil)
+		})
+
+		Convey("console config", func() {
+			cfg := &config.Config{
 				Log: config.LogConfig{
 					LogLevel:   "info",
 					OutputMode: "console",
 				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "with file config",
-			cfg: &config.Config{
+			}
+			log, err := InitLogger(cfg)
+			So(err, ShouldBeNil)
+			So(log, ShouldNotBeNil)
+		})
+
+		Convey("file config", func() {
+			cfg := &config.Config{
 				Log: config.LogConfig{
 					LogLevel:    "debug",
 					OutputMode:  "file",
@@ -39,53 +37,49 @@ func TestInitLogger(t *testing.T) {
 					MaxSize:     10,
 					MaxAge:      7,
 				},
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			log, err := InitLogger(tt.cfg)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, log)
 			}
+			log, err := InitLogger(cfg)
+			So(err, ShouldBeNil)
+			So(log, ShouldNotBeNil)
 		})
-	}
+	})
 }
 
 func TestGetLogger(t *testing.T) {
-	// Reset logger to nil for testing
-	logger = nil
-	
-	log := GetLogger()
-	assert.NotNil(t, log)
+	Convey("GetLogger 在 logger 为 nil 时也应返回有效 logger", t, func() {
+		// 重置全局 logger 为 nil 后再获取
+		logger = nil
+		log := GetLogger()
+		So(log, ShouldNotBeNil)
+	})
 }
 
 func TestLogFunctions(t *testing.T) {
-	// Initialize logger
-	InitLogger(nil)
+	Convey("各级别格式化 / 结构化日志函数可调用不 panic", t, func() {
+		_, err := InitLogger(nil)
+		So(err, ShouldBeNil)
 
-	// Test formatted logging functions
-	Debugf("test debug: %s", "message")
-	Infof("test info: %s", "message")
-	Warnf("test warn: %s", "message")
-	Errorf("test error: %s", "message")
+		// 格式化日志函数
+		Debugf("test debug: %s", "message")
+		Infof("test info: %s", "message")
+		Warnf("test warn: %s", "message")
+		Errorf("test error: %s", "message")
 
-	// Test logging with fields
-	Debug("debug message", zap.String("key", "value"))
-	Info("info message", zap.String("key", "value"))
-	Warn("warn message", zap.String("key", "value"))
-	Error("error message", zap.String("key", "value"))
+		// 带字段日志函数
+		Debug("debug message", zap.String("key", "value"))
+		Info("info message", zap.String("key", "value"))
+		Warn("warn message", zap.String("key", "value"))
+		Error("error message", zap.String("key", "value"))
+	})
 }
 
 func TestWithFields(t *testing.T) {
-	InitLogger(nil)
-	
-	log := WithFields(zap.String("request_id", "12345"))
-	assert.NotNil(t, log)
-	log.Info("test with fields")
+	Convey("WithFields 返回带字段的 logger", t, func() {
+		_, err := InitLogger(nil)
+		So(err, ShouldBeNil)
+
+		log := WithFields(zap.String("request_id", "12345"))
+		So(log, ShouldNotBeNil)
+		log.Info("test with fields")
+	})
 }

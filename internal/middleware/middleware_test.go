@@ -6,123 +6,116 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
+	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 )
 
 func TestMiddlewareInterface(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	logger := zap.NewNop()
+	Convey("Middleware 接口实现遍历", t, func() {
+		gin.SetMode(gin.TestMode)
+		logger := zap.NewNop()
 
-	tests := []struct {
-		name       string
-		middleware Middleware
-		identifier string
-	}{
-		{
-			name:       "request_id middleware",
-			middleware: NewRequestIDMiddleware(),
-			identifier: "request_id",
-		},
-		{
-			name:       "logging middleware",
-			middleware: NewLoggingMiddleware(logger),
-			identifier: "logging",
-		},
-		{
-			name:       "recovery middleware",
-			middleware: NewRecoveryMiddleware(),
-			identifier: "recovery",
-		},
-		{
-			name:       "response middleware",
-			middleware: NewResponseMiddleware(),
-			identifier: "response",
-		},
-	}
+		cases := []struct {
+			name       string
+			middleware Middleware
+			identifier string
+		}{
+			{"request_id middleware", NewRequestIDMiddleware(), "request_id"},
+			{"logging middleware", NewLoggingMiddleware(logger), "logging"},
+			{"recovery middleware", NewRecoveryMiddleware(), "recovery"},
+			{"response middleware", NewResponseMiddleware(), "response"},
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.identifier, tt.middleware.Identifier())
-			assert.NotNil(t, tt.middleware.HandlerFunc())
-		})
-	}
+		for _, c := range cases {
+			So(c.middleware.Identifier(), ShouldEqual, c.identifier)
+			So(c.middleware.HandlerFunc(), ShouldNotBeNil)
+		}
+	})
 }
 
 func TestRequestIDMiddleware(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(NewRequestIDMiddleware().HandlerFunc())
-	router.GET("/test", func(c *gin.Context) {
-		c.String(200, "OK")
+	Convey("RequestIDMiddleware 在响应中带 X-Request-ID", t, func() {
+		gin.SetMode(gin.TestMode)
+		router := gin.New()
+		router.Use(NewRequestIDMiddleware().HandlerFunc())
+		router.GET("/test", func(c *gin.Context) {
+			c.String(200, "OK")
+		})
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/test", nil)
+		router.ServeHTTP(w, req)
+
+		So(w.Code, ShouldEqual, 200)
+		So(w.Header().Get("X-Request-ID"), ShouldNotBeEmpty)
 	})
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/test", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
-	// Check that response has X-Request-ID header
-	assert.NotEmpty(t, w.Header().Get("X-Request-ID"))
 }
 
 func TestLoggingMiddleware(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	logger := zap.NewNop()
+	Convey("LoggingMiddleware 正常透传 200", t, func() {
+		gin.SetMode(gin.TestMode)
+		logger := zap.NewNop()
 
-	router := gin.New()
-	router.Use(NewLoggingMiddleware(logger).HandlerFunc())
-	router.GET("/test", func(c *gin.Context) {
-		c.String(200, "OK")
+		router := gin.New()
+		router.Use(NewLoggingMiddleware(logger).HandlerFunc())
+		router.GET("/test", func(c *gin.Context) {
+			c.String(200, "OK")
+		})
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/test", nil)
+		router.ServeHTTP(w, req)
+
+		So(w.Code, ShouldEqual, 200)
 	})
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/test", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
 }
 
 func TestRecoveryMiddleware(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	Convey("RecoveryMiddleware 捕获 panic 返回 500", t, func() {
+		gin.SetMode(gin.TestMode)
 
-	router := gin.New()
-	router.Use(NewRecoveryMiddleware().HandlerFunc())
-	router.GET("/panic", func(c *gin.Context) {
-		panic("test panic")
+		router := gin.New()
+		router.Use(NewRecoveryMiddleware().HandlerFunc())
+		router.GET("/panic", func(c *gin.Context) {
+			panic("test panic")
+		})
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/panic", nil)
+		router.ServeHTTP(w, req)
+
+		So(w.Code, ShouldEqual, 500)
 	})
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/panic", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 500, w.Code)
 }
 
 func TestResponseMiddleware(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+	Convey("ResponseMiddleware 包装响应输出", t, func() {
+		gin.SetMode(gin.TestMode)
 
-	router := gin.New()
-	router.Use(NewResponseMiddleware().HandlerFunc())
-	router.GET("/success", func(c *gin.Context) {
-		c.Set("data", gin.H{"message": "success"})
+		router := gin.New()
+		router.Use(NewResponseMiddleware().HandlerFunc())
+		router.GET("/success", func(c *gin.Context) {
+			c.Set("data", gin.H{"message": "success"})
+		})
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/success", nil)
+		router.ServeHTTP(w, req)
+
+		So(w.Code, ShouldEqual, 200)
+		So(w.Body.String(), ShouldContainSubstring, "success")
 	})
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/success", nil)
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
-	assert.Contains(t, w.Body.String(), "success")
 }
 
 func TestRegisterDefaultMiddlewares(t *testing.T) {
-	logger := zap.NewNop()
-	middlewares := RegisterDefaultMiddlewares(logger)
+	Convey("RegisterDefaultMiddlewares 返回 4 个默认中间件并顺序固定", t, func() {
+		logger := zap.NewNop()
+		middlewares := RegisterDefaultMiddlewares(logger)
 
-	assert.Len(t, middlewares, 4)
-	assert.Equal(t, "request_id", middlewares[0].Identifier())
-	assert.Equal(t, "logging", middlewares[1].Identifier())
-	assert.Equal(t, "recovery", middlewares[2].Identifier())
-	assert.Equal(t, "response", middlewares[3].Identifier())
+		So(len(middlewares), ShouldEqual, 4)
+		So(middlewares[0].Identifier(), ShouldEqual, "request_id")
+		So(middlewares[1].Identifier(), ShouldEqual, "logging")
+		So(middlewares[2].Identifier(), ShouldEqual, "recovery")
+		So(middlewares[3].Identifier(), ShouldEqual, "response")
+	})
 }
