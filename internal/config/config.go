@@ -5,16 +5,11 @@ import (
 	"time"
 
 	"github.com/vaynedu/hollow/pkg/hconfig"
+	"github.com/vaynedu/hollow/pkg/hlog"
 )
 
-// LogConfig 定义日志配置结构体
-type LogConfig struct {
-	LogLevel    string `mapstructure:"level"`
-	OutputMode  string `mapstructure:"output_mode"`
-	LogFileName string `mapstructure:"file"`
-	MaxSize     int    `mapstructure:"max_size"`
-	MaxAge      int    `mapstructure:"max_age"`
-}
+// LogConfig 保留原有名称，实际配置由公开的 hlog.Config 定义。
+type LogConfig = hlog.Config
 
 type ServerConfig struct {
 	Host            string        `mapstructure:"host"`

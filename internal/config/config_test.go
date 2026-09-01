@@ -25,7 +25,7 @@ func TestNewConfig(t *testing.T) {
 		So(config, ShouldNotBeNil)
 		So(config.Server.Host, ShouldEqual, "127.0.0.1:8090")
 		So(config.Server.ShutdownTimeout, ShouldEqual, 5*time.Second)
-		So(config.Log.LogLevel, ShouldEqual, "debug")
+		So(config.Log.Level, ShouldEqual, "debug")
 	})
 }
 

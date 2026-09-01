@@ -10,11 +10,39 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	. "github.com/smartystreets/goconvey/convey"
 	"github.com/vaynedu/hollow/pkg/hecode"
+	"github.com/vaynedu/hollow/pkg/hlog"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
+
+func TestRequestIDMiddlewareInjectsContextLogger(t *testing.T) {
+	Convey("Request ID 中间件注入 Context Logger", t, func() {
+		gin.SetMode(gin.TestMode)
+		core, logs := observer.New(zapcore.InfoLevel)
+		original := hlog.L()
+		hlog.SetDefault(zap.New(core))
+		Reset(func() { hlog.SetDefault(original) })
+
+		router := gin.New()
+		router.Use(NewRequestIDMiddleware())
+		router.GET("/", func(c *gin.Context) {
+			hlog.FromContext(c.Request.Context()).Info("inside handler")
+			c.Status(http.StatusNoContent)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("X-Request-ID", "request-1")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		So(recorder.Code, ShouldEqual, http.StatusNoContent)
+		So(logs.Len(), ShouldEqual, 1)
+		So(logs.All()[0].ContextMap()[RequestIDKey], ShouldEqual, "request-1")
+	})
+}
 
 type responseEnvelope struct {
 	Code      int             `json:"code"`

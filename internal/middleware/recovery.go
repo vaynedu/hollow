@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow/pkg/hecode"
+	"github.com/vaynedu/hollow/pkg/hlog"
 	"go.uber.org/zap"
 )
 
@@ -13,11 +14,10 @@ func NewRecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				requestID, _ := c.Get(RequestIDKey)
-				logger.Error("panic recovered",
+				requestLogger := hlog.FromContext(c.Request.Context())
+				requestLogger.Error("panic recovered",
 					zap.Any("error", err),
 					zap.String("stack", string(stack())),
-					zap.String("request_id", requestIDString(requestID)),
 					zap.String("path", c.Request.URL.Path),
 					zap.String("method", c.Request.Method),
 				)

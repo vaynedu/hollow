@@ -19,7 +19,7 @@ func TestInitLogger(t *testing.T) {
 		Convey("console config", func() {
 			cfg := &config.Config{
 				Log: config.LogConfig{
-					LogLevel:   "info",
+					Level:      "info",
 					OutputMode: "console",
 				},
 			}
@@ -31,11 +31,11 @@ func TestInitLogger(t *testing.T) {
 		Convey("file config", func() {
 			cfg := &config.Config{
 				Log: config.LogConfig{
-					LogLevel:    "debug",
-					OutputMode:  "file",
-					LogFileName: filepath.Join(t.TempDir(), "test.log"),
-					MaxSize:     10,
-					MaxAge:      7,
+					Level:      "debug",
+					OutputMode: "file",
+					File:       filepath.Join(t.TempDir(), "test.log"),
+					MaxSize:    10,
+					MaxAge:     7,
 				},
 			}
 			log, err := InitLogger(cfg)

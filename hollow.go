@@ -6,6 +6,7 @@ import (
 	"github.com/vaynedu/hollow/internal/logger"
 	"github.com/vaynedu/hollow/internal/middleware"
 	"github.com/vaynedu/hollow/pkg/hecode"
+	"github.com/vaynedu/hollow/pkg/hlog"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +40,7 @@ func NewApp(opts AppOption) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	hlog.SetDefault(log)
 
 	// 初始化日志
 	log, err := logger.InitLogger(cfg)

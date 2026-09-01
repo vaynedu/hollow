@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vaynedu/hollow/pkg/hlog"
 	"go.uber.org/zap"
 )
 
@@ -16,9 +17,8 @@ func NewLoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		c.Next()
 
-		requestID, _ := c.Get(RequestIDKey)
-		logger.Info("HTTP Request",
-			zap.String("request_id", requestIDString(requestID)),
+		requestLogger := hlog.FromContext(c.Request.Context())
+		requestLogger.Info("HTTP Request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
 			zap.String("query", query),

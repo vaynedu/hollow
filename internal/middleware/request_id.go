@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow/pkg/hidgenerator"
+	"github.com/vaynedu/hollow/pkg/hlog"
 )
 
 const RequestIDKey = "request_id"
@@ -24,6 +25,7 @@ func NewRequestIDMiddleware() gin.HandlerFunc {
 		c.Set(RequestIDKey, requestID)
 
 		ctx := context.WithValue(c.Request.Context(), requestIDContextKey{}, requestID)
+		ctx = hlog.NewContext(ctx, hlog.L().With(hlog.String(RequestIDKey, requestID)))
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}

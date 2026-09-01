@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaynedu/hollow/pkg/hecode"
+	"github.com/vaynedu/hollow/pkg/hlog"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +21,7 @@ func NewResponseMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			err := ginErr.Err
 			var ecodeErr *hecode.EcodeError
 			if !errors.As(err, &ecodeErr) {
-				logger.Error("request failed",
+				hlog.FromContext(c.Request.Context()).Error("request failed",
 					zap.Error(err),
 					zap.String("request_id", requestIDValue),
 					zap.String("path", c.Request.URL.Path),
