@@ -80,6 +80,8 @@ service → cache（可选）
 
 项目不生成独立 `handler/` 目录。HTTP Adapter 保留在 `proto/*_myhttp.pb.go`，`make proto` 不会修改 `control/`、`service/`、`dao/`、`model/` 中的手写代码。`cache/` 仅在读多写少且允许短暂不一致时按需创建。
 
+生成的 `model/user.go` 是数据库模型示例，展示显式 GORM/JSON 标签、表名常量和状态枚举；业务项目可按真实表结构修改或替换。
+
 新项目默认通过 Proto 提供 `GET /v1/health`，由 `control.Health` 调用 `service.Health`。Hollow 核心不注册服务级健康路由。
 
 # 核心功能

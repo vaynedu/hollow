@@ -35,6 +35,8 @@ func projectFiles(config ProjectConfig) []projectFile {
 		{path: "database/mysql.go", template: "database_mysql.go.tmpl"},
 		{path: "database/redis.go", template: "database_redis.go.tmpl"},
 		{path: "model/model.go", template: "model.go.tmpl"},
+		{path: "model/user.go", template: "model_user.go.tmpl"},
+		{path: "model/user_test.go", template: "model_user_test.go.tmpl"},
 		{path: filepath.Join("proto", config.ProtoName+".proto"), template: "proto.tmpl"},
 		{path: "router/router.go", template: "router.go.tmpl"},
 		{path: "service/health.go", template: "service_health.go.tmpl"},

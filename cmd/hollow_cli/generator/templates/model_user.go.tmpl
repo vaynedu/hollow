@@ -1,0 +1,24 @@
+package model
+
+import "time"
+
+const TableNameUser = "users"
+
+// 用户状态枚举。
+const (
+	UserStatusNormal   = 1 // 正常
+	UserStatusDisabled = 2 // 禁用
+)
+
+// User 是用户表的示例模型。
+// 业务项目可根据实际表结构增删字段，但建议保留显式 column、json 标签和 TableName。
+type User struct {
+	ID         uint64    `gorm:"column:id;primary_key;AUTO_INCREMENT;comment:用户ID" json:"id"`
+	Name       string    `gorm:"column:name;size:64;not null;comment:用户名" json:"name"`
+	Status     int       `gorm:"column:status;not null;default:1;comment:状态(1正常 2禁用)" json:"status"`
+	CreateTime time.Time `gorm:"column:create_time;default:CURRENT_TIMESTAMP(3);comment:创建时间" json:"create_time"`
+	UpdateTime time.Time `gorm:"column:update_time;default:CURRENT_TIMESTAMP(3);comment:更新时间" json:"update_time"`
+}
+
+// TableName 返回 User 对应的数据表名。
+func (u *User) TableName() string { return TableNameUser }

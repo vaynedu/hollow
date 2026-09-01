@@ -206,6 +206,8 @@ func TestInitProjectGeneratesGoldenTree(t *testing.T) {
 		"go.mod",
 		"main.go",
 		"model/model.go",
+		"model/user.go",
+		"model/user_test.go",
 		"proto/lifelog.proto",
 		"router/router.go",
 		"service/health.go",
@@ -370,6 +372,22 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		content := readProjectFile(t, target, file)
 		assertContainsAll(t, file, content, "Convey(", "So(")
 	}
+	userModel := readProjectFile(t, target, "model/user.go")
+	assertContainsAll(t, "model/user.go", userModel,
+		`const TableNameUser = "users"`,
+		"UserStatusNormal",
+		"UserStatusDisabled",
+		"type User struct",
+		`gorm:"column:id;primary_key;AUTO_INCREMENT;comment:用户ID" json:"id"`,
+		`gorm:"column:create_time;default:CURRENT_TIMESTAMP(3);comment:创建时间" json:"create_time"`,
+		"func (u *User) TableName() string",
+	)
+	userModelTest := readProjectFile(t, target, "model/user_test.go")
+	assertContainsAll(t, "model/user_test.go", userModelTest,
+		"Convey(",
+		"So(",
+		"TableNameUser",
+	)
 	healthServiceFile := readProjectFile(t, target, "service/health.go")
 	assertContainsAll(t, "service/health.go", healthServiceFile,
 		"func Health(ctx context.Context) (string, error)",
@@ -452,6 +470,7 @@ func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
 		"hlog.FromContext(ctx)",
 		"MySQL 和 Redis 默认关闭",
 		"GoConvey",
+		"model/user.go",
 	)
 	for _, forbidden := range []string{"兼容 `v1.0.0`", "发布新的 `v1.0.0`"} {
 		if strings.Contains(readme, forbidden) {

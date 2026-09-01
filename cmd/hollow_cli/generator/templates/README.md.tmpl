@@ -39,6 +39,8 @@ service → cache（可选）
 
 `make proto` 只更新 `proto/*.pb.go` 和 `proto/*_myhttp.pb.go`。`control/`、`service/`、`dao/`、`model/` 是手写代码，不会被覆盖。`cache/` 仅在读多写少且允许短暂不一致时按需创建。
 
+`model/user.go` 提供带显式 GORM、JSON 标签、表名和状态枚举的数据库模型示例；开始真实业务开发时可按实际表结构修改或替换。
+
 新项目默认提供 `GET /v1/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
 
 配置仅在启动时从本地 `conf.yaml` 读取。MySQL 和 Redis 默认关闭；将对应 `enabled` 改为 `true` 并填写连接配置后，启动 Hook 会自动建立连接并在退出时关闭。
