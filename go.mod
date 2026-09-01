@@ -3,12 +3,10 @@ module github.com/vaynedu/hollow
 go 1.25.0
 
 require (
-	github.com/avast/retry-go/v4 v4.6.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-resty/resty/v2 v2.16.5
-	github.com/larksuite/oapi-sdk-go/v3 v3.4.19
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/samber/lo v1.51.0
 	github.com/shopspring/decimal v1.4.0
