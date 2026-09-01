@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,5 +26,30 @@ func TestNewConfig(t *testing.T) {
 		So(config.Server.Host, ShouldEqual, "127.0.0.1:8090")
 		So(config.Server.ShutdownTimeout, ShouldEqual, 5*time.Second)
 		So(config.Log.LogLevel, ShouldEqual, "debug")
+	})
+}
+
+func TestNewConfigDefaultsAndValidation(t *testing.T) {
+	Convey("NewConfig 应用默认值并校验服务配置", t, func() {
+		dir := t.TempDir()
+
+		Convey("空配置使用可运行的服务默认值", func() {
+			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte("{}\n"), 0o600), ShouldBeNil)
+
+			cfg, err := NewConfig(dir, "conf")
+
+			So(err, ShouldBeNil)
+			So(cfg.Server.Host, ShouldEqual, "127.0.0.1:8080")
+			So(cfg.Server.ShutdownTimeout, ShouldEqual, 10*time.Second)
+		})
+
+		Convey("拒绝非正数关闭超时", func() {
+			content := "server:\n  host: 127.0.0.1:8080\n  shutdown_timeout: -1s\n"
+			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte(content), 0o600), ShouldBeNil)
+
+			_, err := NewConfig(dir, "conf")
+
+			So(errors.Is(err, ErrInvalidShutdownTimeout), ShouldBeTrue)
+		})
 	})
 }
