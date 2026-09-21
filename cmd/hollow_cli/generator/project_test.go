@@ -21,7 +21,7 @@ func TestNewProjectConfigDerivesDefaults(t *testing.T) {
 
 	if cfg.ProjectName != "lifelog-server" || cfg.ModuleName != "lifelog-server" ||
 		cfg.ServiceName != "LifelogService" || cfg.ProtoName != "lifelog" ||
-		cfg.HollowVersion != "v1.0.0" {
+		cfg.EnvPrefix != "LIFELOG" || cfg.HollowVersion != "v1.0.0" {
 		t.Fatalf("config=%+v", cfg)
 	}
 }
@@ -301,6 +301,7 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 	mainFile := readProjectFile(t, target, "main.go")
 	assertContainsAll(t, "main.go", mainFile,
 		"hollow.NewApp(",
+		"EnvPrefix:  config.EnvPrefix",
 		"config.Startup",
 		"database.InitMySQL",
 		"database.InitRedis",
@@ -327,11 +328,12 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 	)
 	configFile := readProjectFile(t, target, "config/config.go")
 	assertContainsAll(t, "config/config.go", configFile,
+		`const EnvPrefix = "LIFELOG"`,
 		"type Config struct",
 		"type DatabaseConfig struct",
 		"func Startup() error",
 		"func Get() *Config",
-		"hconfig.Load(path, name, cfg)",
+		"hconfig.LoadWithEnv(path, name, EnvPrefix, cfg)",
 		"func (c *Config) Validate() error",
 	)
 	databaseFile := readProjectFile(t, target, "database/database.go")

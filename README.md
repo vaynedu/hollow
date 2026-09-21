@@ -39,10 +39,11 @@ hollow/
 │           └── templates/        # 项目骨架模板
 ├── internal/                     # 框架内部配置、日志和 HTTP 中间件
 ├── pkg/                          # 对业务项目公开的基础能力
-│   ├── hconfig/                  # 本地 YAML 类型化加载
+│   ├── hconfig/                  # YAML 类型化加载与环境变量覆盖
 │   ├── hlog/                     # Context 结构化日志
 │   ├── hgorm/                    # GORM MySQL 与连接池
 │   ├── hredis/                   # Redis 客户端
+│   ├── hscheduler/               # 进程内定时任务调度
 │   └── hecode/                   # 统一错误码与响应
 ├── hollow.go                     # 框架入口
 └── example/                      # 使用示例
@@ -92,7 +93,11 @@ service → cache（可选）
 - 依赖注入 ：支持用户自定义配置和中间件
 
 ```go
-app, err := hollow.NewApp(hollow.AppOption{ConfigPath: ".", ConfigName: "conf"})
+app, err := hollow.NewApp(hollow.AppOption{
+	ConfigPath: ".",
+	ConfigName: "conf",
+	EnvPrefix:  config.EnvPrefix,
+})
 if err != nil {
 	return err
 }
@@ -112,7 +117,15 @@ return app.Run()
 ## 2. 配置管理 (`pkg/hconfig`)
 - 启动时读取本地 `conf.yaml`
 - 支持类型化反序列化、调用方默认值和 `Validate()` 校验
-- 本期不包含热更新、远程配置或环境变量覆盖
+- `LoadWithEnv` 支持使用环境变量覆盖 YAML，嵌套路径自动转换为下划线命名
+- 本期不包含热更新和远程配置
+
+CLI 生成的项目默认使用项目名前缀，例如 `lifelog-server` 使用 `LIFELOG`：
+
+```bash
+LIFELOG_SERVER_HOST=127.0.0.1:9090
+LIFELOG_DATABASE_MYSQL_DSN='root:password@tcp(127.0.0.1:3306)/lifelog'
+```
 
 ## 3. 日志系统 (`pkg/hlog`)
 - 基于 Zap 高性能日志库
@@ -133,7 +146,36 @@ logger.Info("homepage loaded")
 - `hredis.NewClient`：创建原生 go-redis v9 客户端并 Ping。
 - CLI 默认生成 `database/mysql.go`、`database/redis.go`；通过 `conf.yaml` 的 `enabled` 开关启用。
 
-## 5. 中间件系统 (middleware/)
+## 5. 定时任务 (`pkg/hscheduler`)
+
+- 基于 `robfig/cron/v3` 提供跨平台的进程内定时任务调度。
+- 支持 Cron 表达式、单次执行超时、启动补跑、防止同一任务重叠执行、panic 恢复和优雅关闭。
+- Hollow 只负责通用调度，任务配置、依赖组装和具体业务逻辑由业务项目维护。
+
+```go
+scheduler, err := hscheduler.New(time.Local)
+if err != nil {
+	return err
+}
+if err := scheduler.RegisterFunc(
+	"cleanup_expired_data",
+	"0 3 * * *",
+	time.Minute,
+	false,
+	func(ctx context.Context) error {
+		return service.CleanupExpiredData(ctx)
+	},
+); err != nil {
+	return err
+}
+
+app.Startup(scheduler.Startup)
+app.Shutdown(scheduler.Shutdown)
+```
+
+复杂任务仍可实现 `Job` 接口；简单任务直接使用 `RegisterFunc`，不额外引入 `Task` 概念。
+
+## 6. 中间件系统 (middleware/)
 采用 Gin 原生中间件模型；框架内置中间件和业务自定义中间件均为 `gin.HandlerFunc`，可通过 `app.Use(...)` 注册：
 
 - RequestID ：请求追踪 ID 生成
@@ -142,7 +184,7 @@ logger.Info("homepage loaded")
 - Response ：统一响应格式处理
 - Metrics ：性能指标收集（可扩展）
 
-## 6. 工具包 hcond - 条件构造器
+## 7. 工具包 hcond - 条件构造器
 - 支持构建复杂的 SQL WHERE 条件
 - 支持逻辑运算符（AND/OR）
 - 支持比较运算符（=, !=, >, <, >=, <=, IN）

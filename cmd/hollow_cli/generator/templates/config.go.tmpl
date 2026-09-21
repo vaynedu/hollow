@@ -9,6 +9,9 @@ import (
 	"github.com/vaynedu/hollow/pkg/hredis"
 )
 
+// EnvPrefix 是项目配置使用的环境变量前缀。
+const EnvPrefix = "{{.EnvPrefix}}"
+
 var (
 	// ErrMySQLDSNRequired 表示启用 MySQL 后未配置 DSN。
 	ErrMySQLDSNRequired = errors.New("config: database.mysql.dsn is required when enabled")
@@ -58,7 +61,7 @@ func Get() *Config {
 
 func load(path, name string) (*Config, error) {
 	cfg := new(Config)
-	if err := hconfig.Load(path, name, cfg); err != nil {
+	if err := hconfig.LoadWithEnv(path, name, EnvPrefix, cfg); err != nil {
 		return nil, err
 	}
 	return cfg, nil

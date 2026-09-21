@@ -12,9 +12,10 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 - **项目初始化**：当前使用 `hollow-cli init <project> --hollow-path /path/to/hollow` 创建完整结构
 - **标准响应**：统一 API 响应格式 `{code, msg, request_id, data}`
 - **中间件**：响应格式化、异常恢复、请求日志
-- **配置**：`pkg/hconfig` 启动时加载本地 YAML，并支持类型校验
+- **配置**：`pkg/hconfig` 加载本地 YAML，支持环境变量覆盖和类型校验
 - **日志**：`pkg/hlog` 从 `context.Context` 获取自动携带 Request ID 的结构化 Logger
 - **数据库**：`pkg/hgorm` 和 `pkg/hredis` 提供 MySQL、Redis 薄封装
+- **定时任务**：`pkg/hscheduler` 提供 Cron、超时、防重入、启动补跑和优雅关闭
 
 ## 快速开始
 1. 安装 Protocol Buffers 编译器和代码生成插件：
@@ -39,7 +40,11 @@ Hollow 是基于 Go 的轻量级 Web 框架，中间件架构，提供项目脚�
 ## 应用生命周期
 
 ```go
-app, err := hollow.NewApp(hollow.AppOption{ConfigPath: ".", ConfigName: "conf"})
+app, err := hollow.NewApp(hollow.AppOption{
+	ConfigPath: ".",
+	ConfigName: "conf",
+	EnvPrefix:  config.EnvPrefix,
+})
 if err != nil {
 	return err
 }
@@ -66,7 +71,16 @@ app.Startup(
 app.Shutdown(database.Shutdown)
 ```
 
-MySQL、Redis 通过 `conf.yaml` 的 `enabled` 开关控制，默认关闭。配置只在进程启动时读取一次。
+MySQL、Redis 通过 `conf.yaml` 的 `enabled` 开关控制，默认关闭。配置只在进程启动时读取一次，
+CLI 生成的项目允许使用项目名前缀的环境变量覆盖 YAML，例如 `MYAPP_DATABASE_MYSQL_DSN`。
+
+简单定时任务可直接注册闭包，并使用 Hollow 生命周期启动和关闭：
+
+```go
+scheduler.RegisterFunc("cleanup", "0 3 * * *", time.Minute, false, cleanup)
+app.Startup(scheduler.Startup)
+app.Shutdown(scheduler.Shutdown)
+```
 
 业务日志直接从 Context 获取：
 

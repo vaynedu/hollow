@@ -22,6 +22,7 @@ type App struct {
 type AppOption struct {
 	ConfigPath string
 	ConfigName string
+	EnvPrefix  string
 }
 
 func NewApp(opts AppOption) (*App, error) {
@@ -36,7 +37,13 @@ func NewApp(opts AppOption) (*App, error) {
 	}
 
 	// 初始化配置
-	cfg, err := config.NewConfig(configPath, configName)
+	var cfg *config.Config
+	var err error
+	if opts.EnvPrefix == "" {
+		cfg, err = config.NewConfig(configPath, configName)
+	} else {
+		cfg, err = config.NewConfigWithEnv(configPath, configName, opts.EnvPrefix)
+	}
 	if err != nil {
 		return nil, err
 	}

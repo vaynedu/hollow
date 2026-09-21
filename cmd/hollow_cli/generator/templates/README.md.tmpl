@@ -43,7 +43,9 @@ service → cache（可选）
 
 新项目默认提供 `GET /v1/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
 
-配置仅在启动时从本地 `conf.yaml` 读取。MySQL 和 Redis 默认关闭；将对应 `enabled` 改为 `true` 并填写连接配置后，启动 Hook 会自动建立连接并在退出时关闭。
+配置在启动时读取本地 `conf.yaml`，并允许使用 `{{.EnvPrefix}}_` 前缀的环境变量覆盖；
+例如 `{{.EnvPrefix}}_SERVER_HOST` 和 `{{.EnvPrefix}}_DATABASE_MYSQL_DSN`。
+MySQL 和 Redis 默认关闭；将对应 `enabled` 改为 `true` 并填写连接配置后，启动 Hook 会自动建立连接并在退出时关闭。
 
 请求 Logger 已自动携带 Request ID，可在 Control、Service、DAO 中直接使用：
 

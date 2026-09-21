@@ -17,6 +17,13 @@ type testConfig struct {
 	Port int    `mapstructure:"port"`
 }
 
+type testSchedulerConfig struct {
+	Scheduler struct {
+		Enabled  bool   `mapstructure:"enabled"`
+		Timezone string `mapstructure:"timezone"`
+	} `mapstructure:"scheduler"`
+}
+
 func (c *testConfig) Validate() error {
 	if c.Name == "invalid" {
 		return errInvalidName
@@ -64,6 +71,37 @@ func TestLoad(t *testing.T) {
 			err := Load(dir, "conf", &testConfig{})
 
 			So(errors.Is(err, errInvalidName), ShouldBeTrue)
+		})
+	})
+}
+
+func TestLoadWithEnvOverridesYAML(t *testing.T) {
+	Convey("LoadWithEnv 支持环境变量", t, func() {
+		dir := t.TempDir()
+		t.Setenv("LIFE_CORE_SCHEDULER_ENABLED", "true")
+		t.Setenv("LIFE_CORE_SCHEDULER_TIMEZONE", "Asia/Shanghai")
+
+		Convey("覆盖 YAML 中的配置", func() {
+			content := "scheduler:\n  enabled: false\n  timezone: UTC\n"
+			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte(content), 0o600), ShouldBeNil)
+			var cfg testSchedulerConfig
+
+			err := LoadWithEnv(dir, "conf", "LIFE_CORE", &cfg)
+
+			So(err, ShouldBeNil)
+			So(cfg.Scheduler.Enabled, ShouldBeTrue)
+			So(cfg.Scheduler.Timezone, ShouldEqual, "Asia/Shanghai")
+		})
+
+		Convey("支持仅由环境变量提供的配置", func() {
+			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte("{}\n"), 0o600), ShouldBeNil)
+			var cfg testSchedulerConfig
+
+			err := LoadWithEnv(dir, "conf", "LIFE_CORE", &cfg)
+
+			So(err, ShouldBeNil)
+			So(cfg.Scheduler.Enabled, ShouldBeTrue)
+			So(cfg.Scheduler.Timezone, ShouldEqual, "Asia/Shanghai")
 		})
 	})
 }

@@ -33,13 +33,28 @@ func (c *Config) Validate() error {
 }
 
 func NewConfig(path string, configFileName string) (*Config, error) {
+	return newConfig(path, configFileName, "", false)
+}
+
+// NewConfigWithEnv 加载核心配置，并允许指定前缀的环境变量覆盖 YAML。
+func NewConfigWithEnv(path, configFileName, envPrefix string) (*Config, error) {
+	return newConfig(path, configFileName, envPrefix, true)
+}
+
+func newConfig(path, configFileName, envPrefix string, enableEnv bool) (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
 			Host:            "127.0.0.1:8080",
 			ShutdownTimeout: 10 * time.Second,
 		},
 	}
-	if err := hconfig.Load(path, configFileName, config); err != nil {
+	var err error
+	if enableEnv {
+		err = hconfig.LoadWithEnv(path, configFileName, envPrefix, config)
+	} else {
+		err = hconfig.Load(path, configFileName, config)
+	}
+	if err != nil {
 		return nil, err
 	}
 

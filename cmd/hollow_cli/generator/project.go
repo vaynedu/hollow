@@ -25,6 +25,7 @@ type ProjectConfig struct {
 	ServiceName   string
 	ProtoName     string
 	ProtoPackage  string
+	EnvPrefix     string
 	GoVersion     string
 	HollowVersion string
 	HollowPath    string
@@ -54,6 +55,7 @@ func newProjectConfig(projectPath string, options ProjectOptions) (ProjectConfig
 		ServiceName:   serviceName,
 		ProtoName:     protoName,
 		ProtoPackage:  protoName,
+		EnvPrefix:     strings.ToUpper(protoName),
 		GoVersion:     "1.25.0",
 		HollowVersion: hollowVersion,
 		HollowPath:    options.HollowPath,
