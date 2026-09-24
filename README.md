@@ -83,7 +83,7 @@ service → cache（可选）
 
 生成的 `model/user.go` 是数据库模型示例，展示显式 GORM/JSON 标签、表名常量和状态枚举；业务项目可按真实表结构修改或替换。
 
-新项目默认通过 Proto 提供 `GET /v1/health`，由 `control.Health` 调用 `service.Health`。Hollow 核心不注册服务级健康路由。
+新项目默认通过 Proto 提供 `GET /v1/{project-name}/health`，由 `control.Health` 调用 `service.Health`。Hollow 核心不注册服务级健康路由。
 
 # 核心功能
 ## 1. 框架核心 (hollow.go)
@@ -135,9 +135,8 @@ LIFELOG_DATABASE_MYSQL_DSN='root:password@tcp(127.0.0.1:3306)/lifelog'
 - Request ID 自动注入 Context，可在任意业务层直接使用：
 
 ```go
-logger := hlog.FromContext(ctx).Named("CreatorService.GetHomepage").
-	With(hlog.String("open_id", openID))
-logger.Info("homepage loaded")
+logger := hlog.FromContext(ctx).Named("HealthControl.Health")
+logger.Info("health checked")
 ```
 
 ## 4. 数据库 (`pkg/hgorm`、`pkg/hredis`)

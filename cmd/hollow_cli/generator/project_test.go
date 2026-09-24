@@ -400,7 +400,7 @@ func TestInitProjectRendersStableStandaloneTemplates(t *testing.T) {
 		"message HealthRequest {}",
 		"message HealthResponse {",
 		"rpc Health(HealthRequest) returns (HealthResponse)",
-		`get: "/v1/health"`,
+		`get: "/v1/lifelog-server/health"`,
 	)
 	for _, forbidden := range []string{"PingRequest", "PingResponse", "rpc Ping", `get: "/v1/ping"`} {
 		if strings.Contains(protoFile, forbidden) {
@@ -470,11 +470,19 @@ func TestInitProjectREADMEExplainsUnreleasedWorkflow(t *testing.T) {
 		"才可省略 `--hollow-path`",
 		"现有 `v1.0.0` 标签不得移动或覆盖",
 		"hlog.FromContext(ctx)",
+		`hlog.FromContext(ctx).Named("HealthControl.Health")`,
+		`logger.Info("health checked")`,
 		"MySQL 和 Redis 默认关闭",
 		"GoConvey",
 		"model/user.go",
 	)
-	for _, forbidden := range []string{"兼容 `v1.0.0`", "发布新的 `v1.0.0`"} {
+	for _, forbidden := range []string{
+		"兼容 `v1.0.0`",
+		"发布新的 `v1.0.0`",
+		"CreatorService",
+		"RestaurantService",
+		"open_id",
+	} {
 		if strings.Contains(readme, forbidden) {
 			t.Fatalf("README.md contains forbidden %q:\n%s", forbidden, readme)
 		}

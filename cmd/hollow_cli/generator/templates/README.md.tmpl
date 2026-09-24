@@ -41,7 +41,7 @@ service → cache（可选）
 
 `model/user.go` 提供带显式 GORM、JSON 标签、表名和状态枚举的数据库模型示例；开始真实业务开发时可按实际表结构修改或替换。
 
-新项目默认提供 `GET /v1/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
+新项目默认提供 `GET /v1/{{.ProjectName}}/health`。该接口定义在 Proto 中，并经过自动 HTTP Adapter、`control.Health` 和 `service.Health`，可作为服务级健康检查继续扩展。
 
 配置在启动时读取本地 `conf.yaml`，并允许使用 `{{.EnvPrefix}}_` 前缀的环境变量覆盖；
 例如 `{{.EnvPrefix}}_SERVER_HOST` 和 `{{.EnvPrefix}}_DATABASE_MYSQL_DSN`。
@@ -50,8 +50,8 @@ MySQL 和 Redis 默认关闭；将对应 `enabled` 改为 `true` 并填写连接
 请求 Logger 已自动携带 Request ID，可在 Control、Service、DAO 中直接使用：
 
 ```go
-logger := hlog.FromContext(ctx).Named("RestaurantService.List").
-	With(hlog.String("open_id", openID))
+logger := hlog.FromContext(ctx).Named("HealthControl.Health")
+logger.Info("health checked")
 ```
 
 生成的单元测试使用 GoConvey，可通过 `make test` 执行。

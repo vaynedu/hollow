@@ -15,7 +15,7 @@ message HealthResponse {
 service {{.ServiceName}} {
   rpc Health(HealthRequest) returns (HealthResponse) {
     option (google.api.http) = {
-      get: "/v1/health"
+      get: "/v1/{{.ProjectName}}/health"
     };
   }
 }

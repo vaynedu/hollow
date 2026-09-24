@@ -37,9 +37,18 @@ func TestLoad(t *testing.T) {
 		})
 
 		Convey("环境变量覆盖 YAML 配置", func() {
+			const enabledKey = "{{.EnvPrefix}}_DATABASE_MYSQL_ENABLED"
+			const dsnKey = "{{.EnvPrefix}}_DATABASE_MYSQL_DSN"
+			previousEnabled, enabledExists := os.LookupEnv(enabledKey)
+			previousDSN, dsnExists := os.LookupEnv(dsnKey)
+			Reset(func() {
+				So(restoreEnv(enabledKey, previousEnabled, enabledExists), ShouldBeNil)
+				So(restoreEnv(dsnKey, previousDSN, dsnExists), ShouldBeNil)
+			})
+
 			So(os.WriteFile(filepath.Join(dir, "conf.yaml"), []byte("database: {}\n"), 0o600), ShouldBeNil)
-			t.Setenv("{{.EnvPrefix}}_DATABASE_MYSQL_ENABLED", "true")
-			t.Setenv("{{.EnvPrefix}}_DATABASE_MYSQL_DSN", "env-mysql-dsn")
+			t.Setenv(enabledKey, "true")
+			t.Setenv(dsnKey, "env-mysql-dsn")
 
 			cfg, err := load(dir, "conf")
 
@@ -66,4 +75,11 @@ func TestLoad(t *testing.T) {
 			So(errors.Is(err, ErrRedisAddrRequired), ShouldBeTrue)
 		})
 	})
+}
+
+func restoreEnv(key, value string, exists bool) error {
+	if exists {
+		return os.Setenv(key, value)
+	}
+	return os.Unsetenv(key)
 }

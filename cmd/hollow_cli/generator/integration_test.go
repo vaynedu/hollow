@@ -80,7 +80,7 @@ func TestGeneratedHealthEndpoint(t *testing.T) {
 	router.Register(app)
 
 	recorder := httptest.NewRecorder()
-	app.Engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/v1/health", nil))
+	app.Engine.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/v1/lifelog-server/health", nil))
 	var response struct {
 		Code int ` + "`json:\"code\"`" + `
 		Data struct {
